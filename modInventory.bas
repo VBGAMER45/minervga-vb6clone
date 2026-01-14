@@ -1,0 +1,362 @@
+Attribute VB_Name = "modInventory"
+Option Explicit
+
+' ============================================================================
+' MinerVGA - Inventory and Save/Load Module
+' ============================================================================
+
+' --- Item IDs ---
+Public Const ITEM_SHOVEL As Integer = 1
+Public Const ITEM_PICKAXE As Integer = 2
+Public Const ITEM_DRILL As Integer = 3
+Public Const ITEM_LANTERN As Integer = 4
+Public Const ITEM_BUCKET As Integer = 5
+Public Const ITEM_TORCH As Integer = 6
+Public Const ITEM_DYNAMITE As Integer = 7
+Public Const ITEM_RING As Integer = 8
+Public Const ITEM_CONDOM As Integer = 9
+Public Const ITEM_PUMP As Integer = 10
+Public Const ITEM_CLOVER As Integer = 11
+
+' ============================================================================
+' Item Purchase
+' ============================================================================
+Public Function BuyItem(ByVal ItemID As Integer) As Boolean
+    Dim Cost As Long
+    Dim ItemName As String
+
+    ' Check if already owned
+    If HasItem(ItemID) Then
+        MsgBox "You already have this item!", vbExclamation, "Store"
+        BuyItem = False
+        Exit Function
+    End If
+
+    ' Get cost
+    Cost = GetItemCost(ItemID)
+    ItemName = GetItemName(ItemID)
+
+    ' Check if can afford
+    If Player.Cash < Cost Then
+        MsgBox "You don't have enough money! You need $" & Cost, vbExclamation, "Store"
+        BuyItem = False
+        Exit Function
+    End If
+
+    ' Purchase
+    Player.Cash = Player.Cash - Cost
+    Call GiveItem(ItemID)
+
+    MsgBox "You bought a " & ItemName & " for $" & Cost, vbInformation, "Store"
+    BuyItem = True
+End Function
+
+' ============================================================================
+' Item Queries
+' ============================================================================
+Public Function HasItem(ByVal ItemID As Integer) As Boolean
+    Select Case ItemID
+        Case ITEM_SHOVEL: HasItem = HasShovel
+        Case ITEM_PICKAXE: HasItem = HasPickaxe
+        Case ITEM_DRILL: HasItem = HasDrill
+        Case ITEM_LANTERN: HasItem = HasLantern
+        Case ITEM_BUCKET: HasItem = HasBucket
+        Case ITEM_TORCH: HasItem = HasTorch
+        Case ITEM_DYNAMITE: HasItem = HasDynamite
+        Case ITEM_RING: HasItem = HasRing
+        Case ITEM_CONDOM: HasItem = HasCondom
+        Case ITEM_PUMP: HasItem = HasPump
+        Case ITEM_CLOVER: HasItem = HasClover
+        Case Else: HasItem = False
+    End Select
+End Function
+
+Public Function GetItemCost(ByVal ItemID As Integer) As Long
+    Select Case ItemID
+        Case ITEM_SHOVEL: GetItemCost = COST_SHOVEL
+        Case ITEM_PICKAXE: GetItemCost = COST_PICKAXE
+        Case ITEM_DRILL: GetItemCost = COST_DRILL
+        Case ITEM_LANTERN: GetItemCost = COST_LANTERN
+        Case ITEM_BUCKET: GetItemCost = COST_BUCKET
+        Case ITEM_TORCH: GetItemCost = COST_TORCH
+        Case ITEM_DYNAMITE: GetItemCost = COST_DYNAMITE
+        Case ITEM_RING: GetItemCost = COST_RING
+        Case ITEM_CONDOM: GetItemCost = COST_CONDOM
+        Case ITEM_PUMP: GetItemCost = 0  ' Must be found
+        Case ITEM_CLOVER: GetItemCost = 0  ' Must be found
+        Case Else: GetItemCost = 0
+    End Select
+End Function
+
+Public Function GetItemName(ByVal ItemID As Integer) As String
+    Select Case ItemID
+        Case ITEM_SHOVEL: GetItemName = "Shovel"
+        Case ITEM_PICKAXE: GetItemName = "Pickaxe"
+        Case ITEM_DRILL: GetItemName = "Drill"
+        Case ITEM_LANTERN: GetItemName = "Lantern"
+        Case ITEM_BUCKET: GetItemName = "Bucket"
+        Case ITEM_TORCH: GetItemName = "Torch"
+        Case ITEM_DYNAMITE: GetItemName = "Dynamite"
+        Case ITEM_RING: GetItemName = "Diamond Ring"
+        Case ITEM_CONDOM: GetItemName = "Condom"
+        Case ITEM_PUMP: GetItemName = "Pump"
+        Case ITEM_CLOVER: GetItemName = "Four-Leaf Clover"
+        Case Else: GetItemName = "Unknown"
+    End Select
+End Function
+
+Public Function GetItemDescription(ByVal ItemID As Integer) As String
+    Select Case ItemID
+        Case ITEM_SHOVEL: GetItemDescription = "Reduces digging cost"
+        Case ITEM_PICKAXE: GetItemDescription = "Reduces digging cost"
+        Case ITEM_DRILL: GetItemDescription = "Drills through granite"
+        Case ITEM_LANTERN: GetItemDescription = "Light source (lasts longer)"
+        Case ITEM_BUCKET: GetItemDescription = "Required to pump water"
+        Case ITEM_TORCH: GetItemDescription = "Light source, lights dynamite"
+        Case ITEM_DYNAMITE: GetItemDescription = "Blasts through obstacles"
+        Case ITEM_RING: GetItemDescription = "Needed to win the game"
+        Case ITEM_CONDOM: GetItemDescription = "For protection..."
+        Case ITEM_PUMP: GetItemDescription = "Reduces water pumping cost"
+        Case ITEM_CLOVER: GetItemDescription = "Improves your luck"
+        Case Else: GetItemDescription = ""
+    End Select
+End Function
+
+' ============================================================================
+' Item Management
+' ============================================================================
+Public Sub GiveItem(ByVal ItemID As Integer)
+    Select Case ItemID
+        Case ITEM_SHOVEL: HasShovel = True
+        Case ITEM_PICKAXE: HasPickaxe = True
+        Case ITEM_DRILL: HasDrill = True
+        Case ITEM_LANTERN
+            HasLantern = True
+            LanternFuel = LANTERN_MAX_FUEL
+        Case ITEM_BUCKET: HasBucket = True
+        Case ITEM_TORCH
+            HasTorch = True
+            TorchFuel = TORCH_MAX_FUEL
+        Case ITEM_DYNAMITE: HasDynamite = True
+        Case ITEM_RING: HasRing = True
+        Case ITEM_CONDOM: HasCondom = True
+        Case ITEM_PUMP: HasPump = True
+        Case ITEM_CLOVER: HasClover = True
+    End Select
+End Sub
+
+Public Sub RemoveItem(ByVal ItemID As Integer)
+    Select Case ItemID
+        Case ITEM_SHOVEL: HasShovel = False
+        Case ITEM_PICKAXE: HasPickaxe = False
+        Case ITEM_DRILL: HasDrill = False
+        Case ITEM_LANTERN
+            HasLantern = False
+            LanternFuel = 0
+        Case ITEM_BUCKET: HasBucket = False
+        Case ITEM_TORCH
+            HasTorch = False
+            TorchFuel = 0
+        Case ITEM_DYNAMITE: HasDynamite = False
+        Case ITEM_RING: HasRing = False
+        Case ITEM_CONDOM: HasCondom = False
+        Case ITEM_PUMP: HasPump = False
+        Case ITEM_CLOVER: HasClover = False
+    End Select
+End Sub
+
+' ============================================================================
+' Inventory Count
+' ============================================================================
+Public Function CountOwnedItems() As Integer
+    Dim Count As Integer
+    Count = 0
+
+    If HasShovel Then Count = Count + 1
+    If HasPickaxe Then Count = Count + 1
+    If HasDrill Then Count = Count + 1
+    If HasLantern Then Count = Count + 1
+    If HasBucket Then Count = Count + 1
+    If HasTorch Then Count = Count + 1
+    If HasDynamite Then Count = Count + 1
+    If HasRing Then Count = Count + 1
+    If HasCondom Then Count = Count + 1
+    If HasPump Then Count = Count + 1
+    If HasClover Then Count = Count + 1
+
+    CountOwnedItems = Count
+End Function
+
+Public Function GetInventoryString() As String
+    Dim Items As String
+    Items = ""
+
+    If HasShovel Then Items = Items & "Shovel, "
+    If HasPickaxe Then Items = Items & "Pickaxe, "
+    If HasDrill Then Items = Items & "Drill, "
+    If HasLantern Then Items = Items & "Lantern (" & LanternFuel & "), "
+    If HasBucket Then Items = Items & "Bucket, "
+    If HasTorch Then Items = Items & "Torch (" & TorchFuel & "), "
+    If HasDynamite Then Items = Items & "Dynamite, "
+    If HasRing Then Items = Items & "Ring, "
+    If HasCondom Then Items = Items & "Condom, "
+    If HasPump Then Items = Items & "Pump, "
+    If HasClover Then Items = Items & "Clover, "
+
+    If Len(Items) > 2 Then
+        Items = Left(Items, Len(Items) - 2)  ' Remove trailing ", "
+    Else
+        Items = "None"
+    End If
+
+    GetInventoryString = Items
+End Function
+
+' ============================================================================
+' Bank Operations
+' ============================================================================
+Public Function SellMinerals() As Long
+    Dim Total As Long
+    Total = 0
+
+    Total = Total + (Player.Silver * SILVER_VALUE)
+    Total = Total + (Player.Gold * GOLD_VALUE)
+    Total = Total + (Player.Platinum * PLATINUM_VALUE)
+
+    Player.Cash = Player.Cash + Total
+    Player.Silver = 0
+    Player.Gold = 0
+    Player.Platinum = 0
+
+    SellMinerals = Total
+End Function
+
+Public Function GetMineralValue() As Long
+    Dim Total As Long
+    Total = 0
+
+    Total = Total + (Player.Silver * SILVER_VALUE)
+    Total = Total + (Player.Gold * GOLD_VALUE)
+    Total = Total + (Player.Platinum * PLATINUM_VALUE)
+
+    GetMineralValue = Total
+End Function
+
+' ============================================================================
+' Save/Load Game
+' ============================================================================
+Public Sub SaveGame()
+    Dim FilePath As String
+    Dim FileNum As Integer
+
+    FilePath = App.Path & "\MINERVGA.SAV"
+    FileNum = FreeFile
+
+    On Error GoTo SaveError
+
+    Open FilePath For Output As #FileNum
+
+    ' Player state
+    Print #FileNum, Player.X
+    Print #FileNum, Player.Y
+    Print #FileNum, Player.Health
+    Print #FileNum, Player.Cash
+    Print #FileNum, Player.Silver
+    Print #FileNum, Player.Gold
+    Print #FileNum, Player.Platinum
+    Print #FileNum, Player.Facing
+
+    ' Inventory
+    Print #FileNum, HasShovel
+    Print #FileNum, HasPickaxe
+    Print #FileNum, HasDrill
+    Print #FileNum, HasLantern
+    Print #FileNum, HasBucket
+    Print #FileNum, HasTorch
+    Print #FileNum, HasDynamite
+    Print #FileNum, HasRing
+    Print #FileNum, HasCondom
+    Print #FileNum, HasPump
+    Print #FileNum, HasClover
+
+    ' Fuel
+    Print #FileNum, LanternFuel
+    Print #FileNum, TorchFuel
+
+    ' Elevator
+    Print #FileNum, ElevatorY
+    Print #FileNum, MaxElevatorDepth
+
+    Close #FileNum
+
+    ' Save grid separately
+    Call SaveGrid(App.Path & "\MINERVGA.GRD")
+
+    MsgBox "Game saved successfully!", vbInformation, "MinerVGA"
+    Exit Sub
+
+SaveError:
+    MsgBox "Error saving game: " & Err.Description, vbCritical, "MinerVGA"
+    Close #FileNum
+End Sub
+
+Public Sub LoadGame()
+    Dim FilePath As String
+    Dim FileNum As Integer
+    Dim TempStr As String
+
+    FilePath = App.Path & "\MINERVGA.SAV"
+
+    If Dir(FilePath) = "" Then
+        MsgBox "No saved game found!", vbExclamation, "MinerVGA"
+        Exit Sub
+    End If
+
+    On Error GoTo LoadError
+
+    FileNum = FreeFile
+    Open FilePath For Input As #FileNum
+
+    ' Player state
+    Input #FileNum, Player.X
+    Input #FileNum, Player.Y
+    Input #FileNum, Player.Health
+    Input #FileNum, Player.Cash
+    Input #FileNum, Player.Silver
+    Input #FileNum, Player.Gold
+    Input #FileNum, Player.Platinum
+    Input #FileNum, Player.Facing
+
+    ' Inventory
+    Input #FileNum, HasShovel
+    Input #FileNum, HasPickaxe
+    Input #FileNum, HasDrill
+    Input #FileNum, HasLantern
+    Input #FileNum, HasBucket
+    Input #FileNum, HasTorch
+    Input #FileNum, HasDynamite
+    Input #FileNum, HasRing
+    Input #FileNum, HasCondom
+    Input #FileNum, HasPump
+    Input #FileNum, HasClover
+
+    ' Fuel
+    Input #FileNum, LanternFuel
+    Input #FileNum, TorchFuel
+
+    ' Elevator
+    Input #FileNum, ElevatorY
+    Input #FileNum, MaxElevatorDepth
+
+    Close #FileNum
+
+    ' Load grid
+    Call LoadGrid(App.Path & "\MINERVGA.GRD")
+
+    MsgBox "Game loaded successfully!", vbInformation, "MinerVGA"
+    Exit Sub
+
+LoadError:
+    MsgBox "Error loading game: " & Err.Description, vbCritical, "MinerVGA"
+    Close #FileNum
+End Sub

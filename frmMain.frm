@@ -4,7 +4,7 @@ Begin VB.Form frmMain
    Caption         =   "MinerVGA"
    ClientHeight    =   6480
    ClientLeft      =   60
-   ClientTop       =   450
+   ClientTop       =   750
    ClientWidth     =   9720
    KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
@@ -62,6 +62,24 @@ Begin VB.Form frmMain
       TabIndex        =   1
       Top             =   6180
       Width           =   9735
+   End
+   Begin VB.Menu mnuFile 
+      Caption         =   "&File"
+      Begin VB.Menu mnuLoadGame 
+         Caption         =   "Load Game"
+      End
+      Begin VB.Menu mnuSaveGame 
+         Caption         =   "Save Game"
+      End
+      Begin VB.Menu mnuSEP1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuExit 
+         Caption         =   "Exit"
+      End
+   End
+   Begin VB.Menu mnuHelp 
+      Caption         =   "&Help"
    End
 End
 Attribute VB_Name = "frmMain"
@@ -295,6 +313,22 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
 
     ' Check for win condition
     Call CheckWinCondition
+End Sub
+
+Private Sub mnuExit_Click()
+    Call ExitGame
+End Sub
+
+Private Sub mnuHelp_Click()
+    Call ShowHelp
+End Sub
+
+Private Sub mnuLoadGame_Click()
+    Call LoadGame
+End Sub
+
+Private Sub mnuSaveGame_Click()
+    Call SaveGame
 End Sub
 
 ' ============================================================================

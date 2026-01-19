@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmStore
+Begin VB.Form frmStore 
    BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "General Store"
@@ -16,7 +16,7 @@ Begin VB.Form frmStore
    ScaleWidth      =   512
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.PictureBox picStore
+   Begin VB.PictureBox picStore 
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
       Height          =   6135
@@ -46,7 +46,7 @@ Private picTileset As StdPicture
 Private Sub Form_Load()
     ' Load tileset for icons
     On Error Resume Next
-    Set picTileset = LoadPicture(App.Path & "\javascript\tileset.bmp")
+    Set picTileset = LoadPicture(App.Path & "\tileset.bmp")
     On Error GoTo 0
 
     ' Draw the store interface

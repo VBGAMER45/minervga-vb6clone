@@ -101,8 +101,6 @@ MinerVGA/
 └── MinerVGA.vbp         # VB6 project file
 ```
 
-### Gameplay
-![Gameplay]
 
 ## Technical Details
 

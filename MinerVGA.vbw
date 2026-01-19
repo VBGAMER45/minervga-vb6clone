@@ -7,6 +7,6 @@ frmHelp = 0, 0, 0, 0, C, 52, 52, 1390, 702, C
 frmOuthouse = 0, 0, 1509, 433, , 0, 0, 0, 0, C
 modGameData = 286, 286, 1624, 936, 
 modPlayer = 208, 208, 1546, 858, 
-modGrid = 234, 234, 1572, 884, 
+modGrid = 234, 234, 1572, 884, Z
 modInventory = 260, 260, 1598, 910, 
 modSound = 0, 0, 0, 0, C

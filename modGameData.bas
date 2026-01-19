@@ -163,14 +163,15 @@ Public Const KEY_P As Integer = 80   ' Pump
 Public Const KEY_Y As Integer = 89   ' dYnamite
 Public Const KEY_Q As Integer = 81   ' Quiet (sound)
 
-' --- Modifier Spawn Chances (per 1040 - matching JS version) ---
-Public Const CHANCE_PLATINUM As Integer = 2       ' Rare
-Public Const CHANCE_GOLD As Integer = 32          ' 30 more (cumulative)
-Public Const CHANCE_SILVER As Integer = 102       ' 70 more (cumulative)
-Public Const CHANCE_SPRING As Integer = 342       ' 240 more (cumulative)
-Public Const CHANCE_CAVEIN As Integer = 642       ' 300 more (cumulative)
-Public Const CHANCE_VOLCANIC As Integer = 1042    ' 400 more (cumulative)
-' Granite and sandstone handled separately
+' --- Modifier Spawn Chances (per 1040 - cumulative thresholds) ---
+Public Const CHANCE_PLATINUM As Integer = 2       ' 2/1040 - Very rare
+Public Const CHANCE_GOLD As Integer = 32          ' 30/1040 - Rare
+Public Const CHANCE_SILVER As Integer = 102       ' 70/1040 - Uncommon
+Public Const CHANCE_SPRING As Integer = 342       ' 240/1040 - Common
+Public Const CHANCE_CAVEIN As Integer = 642       ' 300/1040 - Common
+Public Const CHANCE_GRANITE As Integer = 892      ' 250/1040 - Common (slightly less than cavein)
+Public Const CHANCE_VOLCANIC As Integer = 1042    ' 150/1040 - Less common
+' Sandstone and rare items handled in secondary roll
 
 ' --- Sprite Indices (matching JavaScript tileset.bmp layout) ---
 ' Row 0 (0-7)

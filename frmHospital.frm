@@ -92,7 +92,11 @@ Private Sub DrawHospitalInterface()
     picHospital.CurrentX = 100
     picHospital.CurrentY = Y
     picHospital.Print "Press X to Leave the Hospital"
-    Y = Y + 35
+    Y = Y + 30
+
+    ' --- Health Display Section ---
+    Call DrawHealthDisplay(Y)
+    Y = Y + 60
 
     ' Calculate bedrest needed
     MissingHealth = 100 - Player.Health
@@ -141,6 +145,60 @@ Private Sub DrawHospitalInterface()
     picHospital.Print "press S for Surgical procedures ($" & SURGERY_COST & ")."
 
     picHospital.Refresh
+End Sub
+
+Private Sub DrawHealthDisplay(ByVal Y As Integer)
+    Dim BarX As Integer, BarY As Integer
+    Dim BarWidth As Integer, BarHeight As Integer
+    Dim HealthWidth As Integer
+    Dim HealthColor As Long
+
+    ' Health label
+    picHospital.ForeColor = vbWhite
+    picHospital.FontBold = True
+    picHospital.FontSize = 10
+    picHospital.CurrentX = 120
+    picHospital.CurrentY = Y
+    picHospital.Print "Your Current Health:"
+
+    ' Health percentage with color coding
+    If Player.Health >= 70 Then
+        HealthColor = vbGreen
+    ElseIf Player.Health >= 40 Then
+        HealthColor = vbYellow
+    Else
+        HealthColor = vbRed
+    End If
+
+    picHospital.ForeColor = HealthColor
+    picHospital.CurrentX = 320
+    picHospital.CurrentY = Y
+    picHospital.Print Player.Health & "%"
+    Y = Y + 20
+
+    ' Draw health bar background
+    BarX = 120
+    BarY = Y
+    BarWidth = 200
+    BarHeight = 16
+
+    picHospital.Line (BarX, BarY)-(BarX + BarWidth, BarY + BarHeight), &H404040, BF
+
+    ' Draw health bar fill
+    HealthWidth = (Player.Health * BarWidth) \ 100
+    If HealthWidth > 0 Then
+        picHospital.Line (BarX, BarY)-(BarX + HealthWidth, BarY + BarHeight), HealthColor, BF
+    End If
+
+    ' Draw border
+    picHospital.Line (BarX, BarY)-(BarX + BarWidth, BarY + BarHeight), vbWhite, B
+
+    ' Cash display
+    picHospital.ForeColor = vbGreen
+    picHospital.FontSize = 9
+    picHospital.CurrentX = 340
+    picHospital.CurrentY = BarY
+    picHospital.Print "Cash: $" & Format(Player.Cash, "#,##0")
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)

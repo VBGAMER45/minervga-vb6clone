@@ -140,6 +140,8 @@ Private Function GenerateModifier() As Integer
         GenerateModifier = MOD_SPRING
     ElseIf RandVal <= CHANCE_CAVEIN Then
         GenerateModifier = MOD_CAVEIN
+    ElseIf RandVal <= CHANCE_GRANITE Then
+        GenerateModifier = MOD_GRANITE      ' Now in main spawn chain
     ElseIf RandVal <= CHANCE_VOLCANIC Then
         GenerateModifier = MOD_VOLCANIC
     Else
@@ -153,13 +155,11 @@ Private Function GenerateModifier() As Integer
             GenerateModifier = MOD_PUMP      ' Very rare
         ElseIf RareRoll <= 8 Then
             GenerateModifier = MOD_CLOVER    ' Very rare
-        ElseIf RareRoll <= 100 Then
-            GenerateModifier = MOD_GRANITE   ' Uncommon
-        ElseIf RareRoll <= 200 Then
+        ElseIf RareRoll <= 150 Then
             GenerateModifier = MOD_SANDSTONE ' Uncommon
-        ElseIf RareRoll <= 250 Then
+        ElseIf RareRoll <= 200 Then
             GenerateModifier = MOD_WATER     ' Uncommon
-        ElseIf RareRoll <= 280 Then
+        ElseIf RareRoll <= 230 Then
             GenerateModifier = MOD_WHIRLPOOL ' Rare
         Else
             GenerateModifier = MOD_NONE

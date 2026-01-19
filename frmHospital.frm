@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmHospital
+Begin VB.Form frmHospital 
    BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "St.Woody Memorial Hospital"
@@ -16,7 +16,7 @@ Begin VB.Form frmHospital
    ScaleWidth      =   512
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.PictureBox picHospital
+   Begin VB.PictureBox picHospital 
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
       Height          =   6135
@@ -37,7 +37,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' ============================================================================
-' MinerVGA - Hospital Form (Graphical Interface matching JS version)
+' MinerVGA - Hospital Form (Graphical Interface
 ' ============================================================================
 
 Private Const COST_PER_DAY As Long = 100

@@ -1,5 +1,6 @@
 VERSION 5.00
-Begin VB.Form frmMain 
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Begin VB.Form frmMain
    BackColor       =   &H00000000&
    Caption         =   "MinerVGA"
    ClientHeight    =   6480
@@ -12,7 +13,18 @@ Begin VB.Form frmMain
    ScaleMode       =   3  'Pixel
    ScaleWidth      =   648
    StartUpPosition =   2  'CenterScreen
-   Begin VB.Timer tmrGame 
+   Begin MSComDlg.CommonDialog dlgFile
+      Left            =   600
+      Top             =   6000
+      _ExtentX        =   847
+      _ExtentY        =   847
+      _Version        =   393216
+      DefaultExt      =   "sav"
+      DialogTitle     =   "MinerVGA Save Game"
+      Filter          =   "Save Files (*.sav)|*.sav|All Files (*.*)|*.*"
+      InitDir         =   ""
+   End
+   Begin VB.Timer tmrGame
       Enabled         =   0   'False
       Interval        =   50
       Left            =   120
@@ -63,22 +75,28 @@ Begin VB.Form frmMain
       Top             =   6180
       Width           =   9735
    End
-   Begin VB.Menu mnuFile 
+   Begin VB.Menu mnuFile
       Caption         =   "&File"
-      Begin VB.Menu mnuLoadGame 
+      Begin VB.Menu mnuLoadGame
          Caption         =   "Load Game"
       End
-      Begin VB.Menu mnuSaveGame 
+      Begin VB.Menu mnuSaveGame
          Caption         =   "Save Game"
       End
-      Begin VB.Menu mnuSEP1 
+      Begin VB.Menu mnuSEP1
          Caption         =   "-"
       End
-      Begin VB.Menu mnuExit 
+      Begin VB.Menu mnuHighScores
+         Caption         =   "High Scores"
+      End
+      Begin VB.Menu mnuSEP2
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuExit
          Caption         =   "Exit"
       End
    End
-   Begin VB.Menu mnuHelp 
+   Begin VB.Menu mnuHelp
       Caption         =   "&Help"
    End
 End
@@ -108,6 +126,11 @@ Private Declare Function BitBlt Lib "gdi32" ( _
     ByVal dwRop As Long) As Long
 
 Private Const SRCCOPY = &HCC0020
+
+' --- Common Dialog Flags ---
+Private Const cdlOFNFileMustExist = &H1000
+Private Const cdlOFNOverwritePrompt = &H2
+Private Const cdlOFNHideReadOnly = &H4
 
 ' --- Transparent color (white) ---
 Private Const TRANSPARENT_COLOR As Long = &HFFFFFF
@@ -164,6 +187,7 @@ Private Sub Form_Load()
     Call InitializeGrid
     Call ClearMessages
     Call InitializePrices  ' Initialize mineral market prices
+    Call InitHighScores    ' Initialize high score system
 
     ' Set game state
     GameState = STATE_TITLE
@@ -323,12 +347,59 @@ Private Sub mnuHelp_Click()
     Call ShowHelp
 End Sub
 
+Private Sub mnuHighScores_Click()
+    Call ShowHighScores(0)
+End Sub
+
 Private Sub mnuLoadGame_Click()
-    Call LoadGame
+    On Error GoTo LoadCancelled
+
+    ' Configure dialog for loading
+    dlgFile.DialogTitle = "Load MinerVGA Game"
+    dlgFile.Filter = "Save Files (*.sav)|*.sav|All Files (*.*)|*.*"
+    dlgFile.FilterIndex = 1
+    dlgFile.Flags = cdlOFNFileMustExist Or cdlOFNHideReadOnly
+    dlgFile.InitDir = App.Path
+    dlgFile.FileName = ""
+
+    ' Show Open dialog (will raise error if cancelled)
+    dlgFile.ShowOpen
+
+    ' User selected a file - load it
+    If dlgFile.FileName <> "" Then
+        Call LoadGame(dlgFile.FileName)
+        GameState = STATE_PLAYING
+        tmrGame.Enabled = True
+        Call RenderGame
+    End If
+    Exit Sub
+
+LoadCancelled:
+    ' User cancelled the dialog - do nothing
 End Sub
 
 Private Sub mnuSaveGame_Click()
-    Call SaveGame
+    On Error GoTo SaveCancelled
+
+    ' Configure dialog for saving
+    dlgFile.DialogTitle = "Save MinerVGA Game"
+    dlgFile.Filter = "Save Files (*.sav)|*.sav|All Files (*.*)|*.*"
+    dlgFile.FilterIndex = 1
+    dlgFile.Flags = cdlOFNOverwritePrompt Or cdlOFNHideReadOnly
+    dlgFile.InitDir = App.Path
+    dlgFile.FileName = "MinerVGA_Save.sav"
+
+    ' Show Save dialog (will raise error if cancelled)
+    dlgFile.ShowSave
+
+    ' User selected a file - save to it
+    If dlgFile.FileName <> "" Then
+        Call SaveGame(dlgFile.FileName)
+    End If
+    Exit Sub
+
+SaveCancelled:
+    ' User cancelled the dialog - do nothing
 End Sub
 
 ' ============================================================================
@@ -1068,12 +1139,21 @@ Private Sub ShowDeathScreen()
     picGame.CurrentY = 250
     picGame.Print "You have died in the mines!"
 
+    picGame.CurrentX = 150
+    picGame.CurrentY = 280
+    picGame.Print "Final wealth: $" & Format(Player.Cash, "#,##0")
+
     picGame.ForeColor = vbGreen
     picGame.CurrentX = 150
     picGame.CurrentY = 350
-    picGame.Print "Press any key to try again..."
+    picGame.Print "Press any key to continue..."
 
     picGame.Refresh
+
+    ' Check for high score
+    If Player.Cash > 0 Then
+        Call ShowHighScores(Player.Cash)
+    End If
 End Sub
 
 Private Sub ShowWinScreen()
@@ -1094,7 +1174,7 @@ Private Sub ShowWinScreen()
 
     picGame.CurrentX = 100
     picGame.CurrentY = 250
-    picGame.Print "With $" & Player.Cash & " and a diamond ring,"
+    picGame.Print "With $" & Format(Player.Cash, "#,##0") & " and a diamond ring,"
     picGame.CurrentX = 100
     picGame.CurrentY = 280
     picGame.Print "you can now retire in style!"
@@ -1102,11 +1182,14 @@ Private Sub ShowWinScreen()
     picGame.ForeColor = vbGreen
     picGame.CurrentX = 150
     picGame.CurrentY = 380
-    picGame.Print "Press any key to play again..."
+    picGame.Print "Press any key to continue..."
 
     picGame.Refresh
     GameState = STATE_WON
     tmrGame.Enabled = False
+
+    ' Show high scores (winning players get their score recorded)
+    Call ShowHighScores(Player.Cash)
 End Sub
 
 Private Sub ShowBankruptScreen()
@@ -1127,7 +1210,7 @@ Private Sub ShowBankruptScreen()
 
     picGame.CurrentX = 100
     picGame.CurrentY = 250
-    picGame.Print "Final balance: $" & Player.Cash
+    picGame.Print "Final balance: $" & Format(Player.Cash, "#,##0")
 
     picGame.CurrentX = 100
     picGame.CurrentY = 280
@@ -1136,9 +1219,12 @@ Private Sub ShowBankruptScreen()
     picGame.ForeColor = vbGreen
     picGame.CurrentX = 150
     picGame.CurrentY = 380
-    picGame.Print "Press any key to try again..."
+    picGame.Print "Press any key to continue..."
 
     picGame.Refresh
+
+    ' Show high scores (bankruptcy won't qualify but shows the list)
+    Call ShowHighScores(0)
 End Sub
 
 Private Sub CheckWinCondition()

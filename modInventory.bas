@@ -326,18 +326,28 @@ Public Function GetMineralValue() As Long
 End Function
 
 ' ============================================================================
-' Save/Load Game
+' Save/Load Game (with file path parameter for Common Dialog support)
 ' ============================================================================
-Public Sub SaveGame()
-    Dim FilePath As String
+Public Sub SaveGame(Optional ByVal FilePath As String = "")
     Dim FileNum As Integer
+    Dim GridPath As String
 
-    FilePath = App.Path & "\MINERVGA.SAV"
+    ' Use default path if not specified
+    If FilePath = "" Then
+        FilePath = App.Path & "\MINERVGA.SAV"
+    End If
+
+    ' Derive grid path from save path
+    GridPath = Left(FilePath, Len(FilePath) - 4) & ".GRD"
+
     FileNum = FreeFile
 
     On Error GoTo SaveError
 
     Open FilePath For Output As #FileNum
+
+    ' File version for future compatibility
+    Print #FileNum, "MINERVGA_SAVE_V2"
 
     ' Player state
     Print #FileNum, Player.X
@@ -349,34 +359,39 @@ Public Sub SaveGame()
     Print #FileNum, Player.Platinum
     Print #FileNum, Player.Facing
 
-    ' Inventory
-    Print #FileNum, HasShovel
-    Print #FileNum, HasPickaxe
-    Print #FileNum, HasDrill
-    Print #FileNum, HasLantern
-    Print #FileNum, HasBucket
-    Print #FileNum, HasTorch
-    Print #FileNum, HasDynamite
-    Print #FileNum, HasRing
-    Print #FileNum, HasCondom
-    Print #FileNum, HasPump
-    Print #FileNum, HasClover
-    Print #FileNum, HasDiamond
+    ' Inventory (save as integers for reliable loading)
+    Print #FileNum, CInt(HasShovel)
+    Print #FileNum, CInt(HasPickaxe)
+    Print #FileNum, CInt(HasDrill)
+    Print #FileNum, CInt(HasLantern)
+    Print #FileNum, CInt(HasBucket)
+    Print #FileNum, CInt(HasTorch)
+    Print #FileNum, CInt(HasDynamite)
+    Print #FileNum, CInt(HasRing)
+    Print #FileNum, CInt(HasCondom)
+    Print #FileNum, CInt(HasPump)
+    Print #FileNum, CInt(HasClover)
+    Print #FileNum, CInt(HasDiamond)
 
-    ' Fuel
+    ' Fuel and durability
     Print #FileNum, LanternFuel
     Print #FileNum, TorchFuel
+    Print #FileNum, BucketUses
+    Print #FileNum, DrillUses
 
     ' Elevator
     Print #FileNum, ElevatorY
     Print #FileNum, MaxElevatorDepth
 
+    ' Luck
+    Print #FileNum, PlayerLuck
+
     Close #FileNum
 
     ' Save grid separately
-    Call SaveGrid(App.Path & "\MINERVGA.GRD")
+    Call SaveGrid(GridPath)
 
-    MsgBox "Game saved successfully!", vbInformation, "MinerVGA"
+    Call AddMessage("Game saved!")
     Exit Sub
 
 SaveError:
@@ -384,25 +399,61 @@ SaveError:
     Close #FileNum
 End Sub
 
-Public Sub LoadGame()
-    Dim FilePath As String
+Public Sub LoadGame(Optional ByVal FilePath As String = "")
     Dim FileNum As Integer
-    Dim TempStr As String
+    Dim GridPath As String
+    Dim FileVersion As String
 
-    FilePath = App.Path & "\MINERVGA.SAV"
+    ' Use default path if not specified
+    If FilePath = "" Then
+        FilePath = App.Path & "\MINERVGA.SAV"
+    End If
 
     If Dir(FilePath) = "" Then
-        MsgBox "No saved game found!", vbExclamation, "MinerVGA"
+        MsgBox "Save file not found!", vbExclamation, "MinerVGA"
         Exit Sub
     End If
+
+    ' Derive grid path from save path
+    GridPath = Left(FilePath, Len(FilePath) - 4) & ".GRD"
 
     On Error GoTo LoadError
 
     FileNum = FreeFile
     Open FilePath For Input As #FileNum
 
-    ' Player state
-    Input #FileNum, Player.X
+    ' Check file version
+    Input #FileNum, FileVersion
+
+    If Left(FileVersion, 13) = "MINERVGA_SAVE" Then
+        ' New format with version header
+        Call LoadGameV2(FileNum, FileVersion)
+    Else
+        ' Old format - first value is Player.X
+        Player.X = CInt(FileVersion)
+        Call LoadGameV1(FileNum)
+    End If
+
+    Close #FileNum
+
+    ' Load grid
+    Call LoadGrid(GridPath)
+
+    ' Make sure game is in playing state
+    GameState = STATE_PLAYING
+
+    Call AddMessage("Game loaded!")
+    Exit Sub
+
+LoadError:
+    MsgBox "Error loading game: " & Err.Description, vbCritical, "MinerVGA"
+    Close #FileNum
+End Sub
+
+Private Sub LoadGameV1(ByVal FileNum As Integer)
+    Dim TempVar As Variant
+
+    ' Old save format (Player.X already read)
     Input #FileNum, Player.Y
     Input #FileNum, Player.Health
     Input #FileNum, Player.Cash
@@ -411,19 +462,19 @@ Public Sub LoadGame()
     Input #FileNum, Player.Platinum
     Input #FileNum, Player.Facing
 
-    ' Inventory
-    Input #FileNum, HasShovel
-    Input #FileNum, HasPickaxe
-    Input #FileNum, HasDrill
-    Input #FileNum, HasLantern
-    Input #FileNum, HasBucket
-    Input #FileNum, HasTorch
-    Input #FileNum, HasDynamite
-    Input #FileNum, HasRing
-    Input #FileNum, HasCondom
-    Input #FileNum, HasPump
-    Input #FileNum, HasClover
-    Input #FileNum, HasDiamond
+    ' Inventory (read as variant to handle both True/False strings and integers)
+    Input #FileNum, TempVar: HasShovel = CBool(TempVar)
+    Input #FileNum, TempVar: HasPickaxe = CBool(TempVar)
+    Input #FileNum, TempVar: HasDrill = CBool(TempVar)
+    Input #FileNum, TempVar: HasLantern = CBool(TempVar)
+    Input #FileNum, TempVar: HasBucket = CBool(TempVar)
+    Input #FileNum, TempVar: HasTorch = CBool(TempVar)
+    Input #FileNum, TempVar: HasDynamite = CBool(TempVar)
+    Input #FileNum, TempVar: HasRing = CBool(TempVar)
+    Input #FileNum, TempVar: HasCondom = CBool(TempVar)
+    Input #FileNum, TempVar: HasPump = CBool(TempVar)
+    Input #FileNum, TempVar: HasClover = CBool(TempVar)
+    Input #FileNum, TempVar: HasDiamond = CBool(TempVar)
 
     ' Fuel
     Input #FileNum, LanternFuel
@@ -433,15 +484,49 @@ Public Sub LoadGame()
     Input #FileNum, ElevatorY
     Input #FileNum, MaxElevatorDepth
 
-    Close #FileNum
+    ' Set defaults for new fields
+    BucketUses = MAX_BUCKET_USES
+    DrillUses = MAX_DRILL_USES
+    PlayerLuck = 0
+End Sub
 
-    ' Load grid
-    Call LoadGrid(App.Path & "\MINERVGA.GRD")
+Private Sub LoadGameV2(ByVal FileNum As Integer, ByVal Version As String)
+    Dim TempVar As Variant
 
-    MsgBox "Game loaded successfully!", vbInformation, "MinerVGA"
-    Exit Sub
+    ' New save format (V2)
+    Input #FileNum, Player.X
+    Input #FileNum, Player.Y
+    Input #FileNum, Player.Health
+    Input #FileNum, Player.Cash
+    Input #FileNum, Player.Silver
+    Input #FileNum, Player.Gold
+    Input #FileNum, Player.Platinum
+    Input #FileNum, Player.Facing
 
-LoadError:
-    MsgBox "Error loading game: " & Err.Description, vbCritical, "MinerVGA"
-    Close #FileNum
+    ' Inventory (read as variant to handle both True/False strings and integers)
+    Input #FileNum, TempVar: HasShovel = CBool(TempVar)
+    Input #FileNum, TempVar: HasPickaxe = CBool(TempVar)
+    Input #FileNum, TempVar: HasDrill = CBool(TempVar)
+    Input #FileNum, TempVar: HasLantern = CBool(TempVar)
+    Input #FileNum, TempVar: HasBucket = CBool(TempVar)
+    Input #FileNum, TempVar: HasTorch = CBool(TempVar)
+    Input #FileNum, TempVar: HasDynamite = CBool(TempVar)
+    Input #FileNum, TempVar: HasRing = CBool(TempVar)
+    Input #FileNum, TempVar: HasCondom = CBool(TempVar)
+    Input #FileNum, TempVar: HasPump = CBool(TempVar)
+    Input #FileNum, TempVar: HasClover = CBool(TempVar)
+    Input #FileNum, TempVar: HasDiamond = CBool(TempVar)
+
+    ' Fuel and durability
+    Input #FileNum, LanternFuel
+    Input #FileNum, TorchFuel
+    Input #FileNum, BucketUses
+    Input #FileNum, DrillUses
+
+    ' Elevator
+    Input #FileNum, ElevatorY
+    Input #FileNum, MaxElevatorDepth
+
+    ' Luck
+    Input #FileNum, PlayerLuck
 End Sub

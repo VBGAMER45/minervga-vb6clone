@@ -1,136 +1,32 @@
 VERSION 5.00
 Begin VB.Form frmHospital
-   BackColor       =   &H00800000&
+   BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
-   Caption         =   "Town Hospital"
-   ClientHeight    =   3600
+   Caption         =   "St.Woody Memorial Hospital"
+   ClientHeight    =   6480
    ClientLeft      =   45
    ClientTop       =   435
-   ClientWidth     =   4800
+   ClientWidth     =   7680
+   KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   3600
-   ScaleWidth      =   4800
+   ScaleHeight     =   432
+   ScaleMode       =   3  'Pixel
+   ScaleWidth      =   512
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.CommandButton cmdExit
-      Caption         =   "&Leave Hospital"
-      Height          =   375
-      Left            =   3120
-      TabIndex        =   7
-      Top             =   3120
-      Width           =   1575
-   End
-   Begin VB.CommandButton cmdHealFull
-      Caption         =   "Full &Recovery"
-      Height          =   375
-      Left            =   2400
-      TabIndex        =   6
-      Top             =   2400
-      Width           =   1335
-   End
-   Begin VB.CommandButton cmdHeal25
-      Caption         =   "Heal &25%"
-      Height          =   375
-      Left            =   1200
-      TabIndex        =   5
-      Top             =   2400
-      Width           =   1095
-   End
-   Begin VB.CommandButton cmdHeal10
-      Caption         =   "Heal &10%"
-      Height          =   375
-      Left            =   120
-      TabIndex        =   4
-      Top             =   2400
-      Width           =   975
-   End
-   Begin VB.Frame fraStatus
-      BackColor       =   &H00800000&
-      Caption         =   "Patient Status"
-      ForeColor       =   &H00FFFFFF&
-      Height          =   1335
-      Left            =   120
+   Begin VB.PictureBox picHospital
+      AutoRedraw      =   -1  'True
+      BackColor       =   &H00000000&
+      Height          =   6135
+      Left            =   0
+      ScaleHeight     =   405
+      ScaleMode       =   3  'Pixel
+      ScaleWidth      =   506
       TabIndex        =   0
-      Top             =   120
-      Width           =   4575
-      Begin VB.Label lblHealth
-         BackColor       =   &H00800000&
-         Caption         =   "Health: 100%"
-         BeginProperty Font
-            Name            =   "Consolas"
-            Size            =   14.25
-            Charset         =   0
-            Weight          =   700
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
-         ForeColor       =   &H0000FF00&
-         Height          =   375
-         Left            =   120
-         TabIndex        =   1
-         Top             =   360
-         Width           =   4335
-      End
-      Begin VB.Label lblCash
-         BackColor       =   &H00800000&
-         Caption         =   "Cash: $0"
-         BeginProperty Font
-            Name            =   "Consolas"
-            Size            =   11.25
-            Charset         =   0
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
-         ForeColor       =   &H00FFFFFF&
-         Height          =   315
-         Left            =   120
-         TabIndex        =   2
-         Top             =   840
-         Width           =   4335
-      End
-   End
-   Begin VB.Label lblCost
-      BackColor       =   &H00800000&
-      Caption         =   "Cost: $5 per health point restored"
-      BeginProperty Font
-         Name            =   "Consolas"
-         Size            =   9
-         Charset         =   0
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      ForeColor       =   &H0000FFFF&
-      Height          =   495
-      Left            =   120
-      TabIndex        =   3
-      Top             =   1560
-      Width           =   4575
-   End
-   Begin VB.Label lblInfo
-      BackColor       =   &H00800000&
-      Caption         =   ""
-      BeginProperty Font
-         Name            =   "Consolas"
-         Size            =   9
-         Charset         =   0
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      ForeColor       =   &H00FFFF00&
-      Height          =   375
-      Left            =   120
-      TabIndex        =   8
-      Top             =   2880
-      Width           =   2895
+      Top             =   0
+      Width           =   7650
    End
 End
 Attribute VB_Name = "frmHospital"
@@ -141,113 +37,178 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' ============================================================================
-' MinerVGA - Hospital Form
+' MinerVGA - Hospital Form (Graphical Interface matching JS version)
 ' ============================================================================
 
+Private Const COST_PER_DAY As Long = 100
+Private Const SURGERY_COST As Long = 300
+Private Const HEALTH_PER_DAY As Integer = 10
+
 Private Sub Form_Load()
-    Call UpdateDisplay
+    Call DrawHospitalInterface
 End Sub
 
-Private Sub UpdateDisplay()
-    ' Update health display
-    lblHealth.Caption = "Health: " & Player.Health & "%"
-
-    ' Color based on health level
-    If Player.Health < 20 Then
-        lblHealth.ForeColor = vbRed
-    ElseIf Player.Health < 50 Then
-        lblHealth.ForeColor = vbYellow
-    Else
-        lblHealth.ForeColor = vbGreen
-    End If
-
-    ' Update cash
-    lblCash.Caption = "Cash: $" & Format(Player.Cash, "#,##0")
-
-    ' Calculate costs
+Private Sub DrawHospitalInterface()
+    Dim Y As Integer
     Dim MissingHealth As Integer
-    Dim Cost10 As Long, Cost25 As Long, CostFull As Long
+    Dim DaysNeeded As Single
+    Dim FullCost As Long
 
+    picHospital.Cls
+    picHospital.FontName = "Consolas"
+    picHospital.FontSize = 10
+    picHospital.FontBold = True
+
+    Y = 20
+
+    ' Draw title box
+    picHospital.ForeColor = vbCyan
+    picHospital.Line (100, Y)-(410, Y + 25), vbCyan, B
+    picHospital.CurrentX = 115
+    picHospital.CurrentY = Y + 5
+    picHospital.Print "St.Woody Memorial Hospital"
+    Y = Y + 50
+
+    ' Welcome message
+    picHospital.ForeColor = vbCyan
+    picHospital.FontSize = 9
+    picHospital.FontBold = False
+    picHospital.CurrentX = 20
+    picHospital.CurrentY = Y
+    picHospital.Print "Welcome to St. Woody's. We are pleased to take care of you."
+    Y = Y + 15
+    picHospital.CurrentX = 20
+    picHospital.CurrentY = Y
+    picHospital.Print "In God we trust, all others pay cash (No insurance accepted)"
+    Y = Y + 15
+    picHospital.CurrentX = 80
+    picHospital.CurrentY = Y
+    picHospital.Print "What type of service do you want?"
+    Y = Y + 30
+
+    ' Press X to leave
+    picHospital.ForeColor = vbYellow
+    picHospital.FontBold = True
+    picHospital.CurrentX = 100
+    picHospital.CurrentY = Y
+    picHospital.Print "Press X to Leave the Hospital"
+    Y = Y + 35
+
+    ' Calculate bedrest needed
     MissingHealth = 100 - Player.Health
     If MissingHealth < 0 Then MissingHealth = 0
 
-    Cost10 = 10 * HEAL_COST_PER_POINT
-    Cost25 = 25 * HEAL_COST_PER_POINT
-    CostFull = MissingHealth * HEAL_COST_PER_POINT
+    DaysNeeded = MissingHealth / HEALTH_PER_DAY
+    If DaysNeeded < 0.1 Then DaysNeeded = 0.1
+    FullCost = CLng(DaysNeeded * COST_PER_DAY)
 
-    ' Update button captions
-    cmdHeal10.Caption = "Heal 10% ($" & Cost10 & ")"
-    cmdHeal25.Caption = "Heal 25% ($" & Cost25 & ")"
-    cmdHealFull.Caption = "Full Recovery ($" & CostFull & ")"
-
-    ' Enable/disable buttons based on affordability and need
-    cmdHeal10.Enabled = (Player.Cash >= Cost10) And (Player.Health < 100)
-    cmdHeal25.Enabled = (Player.Cash >= Cost25) And (Player.Health < 100)
-    cmdHealFull.Enabled = (Player.Cash >= CostFull) And (Player.Health < 100) And (CostFull > 0)
-
-    ' Update cost info
-    lblCost.Caption = "Cost: $" & HEAL_COST_PER_POINT & " per health point restored" & vbCrLf & _
-                      "Full recovery would cost: $" & CostFull
-
-    ' Update info
-    If Player.Health >= 100 Then
-        lblInfo.Caption = "You are in perfect health!"
-        lblInfo.ForeColor = vbGreen
-    ElseIf Player.Health < 20 Then
-        lblInfo.Caption = "CRITICAL: Seek immediate treatment!"
-        lblInfo.ForeColor = vbRed
+    ' Surgery info
+    picHospital.ForeColor = vbWhite
+    picHospital.FontBold = False
+    picHospital.CurrentX = 20
+    picHospital.CurrentY = Y
+    If Player.Health < 100 Then
+        picHospital.Print "You may be in need of Surgery."
     Else
-        lblInfo.Caption = ""
+        picHospital.Print "You appear to be in good health."
     End If
-End Sub
+    Y = Y + 18
 
-Private Sub cmdHeal10_Click()
-    Dim Cost As Long
-    Cost = 10 * HEAL_COST_PER_POINT
+    picHospital.CurrentX = 20
+    picHospital.CurrentY = Y
+    picHospital.Print "Your bedrest will probably be about " & Format(DaysNeeded, "0.0") & " day(s)."
+    Y = Y + 18
 
-    If Player.Cash >= Cost Then
-        Player.Cash = Player.Cash - Cost
-        Call HealPlayer(10)
-        MsgBox "You feel 10% better!", vbInformation, "Hospital"
-        Call UpdateDisplay
-    End If
-End Sub
+    picHospital.CurrentX = 20
+    picHospital.CurrentY = Y
+    picHospital.Print "Our fees are quite reasonable, $" & COST_PER_DAY & " per day."
+    Y = Y + 40
 
-Private Sub cmdHeal25_Click()
-    Dim Cost As Long
-    Cost = 25 * HEAL_COST_PER_POINT
+    ' Options
+    picHospital.ForeColor = vbGreen
+    picHospital.CurrentX = 60
+    picHospital.CurrentY = Y
+    picHospital.Print "press A to stay until mostly healed."
+    Y = Y + 25
 
-    If Player.Cash >= Cost Then
-        Player.Cash = Player.Cash - Cost
-        Call HealPlayer(25)
-        MsgBox "You feel much better!", vbInformation, "Hospital"
-        Call UpdateDisplay
-    End If
-End Sub
+    picHospital.CurrentX = 60
+    picHospital.CurrentY = Y
+    picHospital.Print "press D to stay one day and night."
+    Y = Y + 25
 
-Private Sub cmdHealFull_Click()
-    Dim MissingHealth As Integer
-    Dim Cost As Long
+    picHospital.CurrentX = 60
+    picHospital.CurrentY = Y
+    picHospital.Print "press S for Surgical procedures ($" & SURGERY_COST & ")."
 
-    MissingHealth = 100 - Player.Health
-    If MissingHealth <= 0 Then Exit Sub
-
-    Cost = MissingHealth * HEAL_COST_PER_POINT
-
-    If Player.Cash >= Cost Then
-        Player.Cash = Player.Cash - Cost
-        Call HealPlayer(MissingHealth)
-        MsgBox "You are fully recovered!", vbInformation, "Hospital"
-        Call UpdateDisplay
-    End If
-End Sub
-
-Private Sub cmdExit_Click()
-    Unload Me
+    picHospital.Refresh
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
-    If KeyCode = vbKeyEscape Then
-        Unload Me
-    End If
+    Dim MissingHealth As Integer
+    Dim DaysNeeded As Single
+    Dim FullCost As Long
+    Dim HealAmount As Integer
+
+    MissingHealth = 100 - Player.Health
+    If MissingHealth < 0 Then MissingHealth = 0
+    DaysNeeded = MissingHealth / HEALTH_PER_DAY
+    FullCost = CLng(DaysNeeded * COST_PER_DAY)
+
+    Select Case KeyCode
+        Case vbKeyX, vbKeyEscape
+            Unload Me
+
+        Case vbKeyA  ' Stay until mostly healed
+            If Player.Health >= 100 Then
+                Call AddMessage("Already healthy!")
+            ElseIf Player.Cash < FullCost Then
+                Call AddMessage("Need $" & FullCost)
+            Else
+                Player.Cash = Player.Cash - FullCost
+                Call HealPlayer(MissingHealth)
+                Call AddMessage("Fully healed!")
+                Call PlayPurchaseSound
+            End If
+            Call DrawHospitalInterface
+
+        Case vbKeyD  ' Stay one day
+            If Player.Health >= 100 Then
+                Call AddMessage("Already healthy!")
+            ElseIf Player.Cash < COST_PER_DAY Then
+                Call AddMessage("Need $" & COST_PER_DAY)
+            Else
+                Player.Cash = Player.Cash - COST_PER_DAY
+                HealAmount = HEALTH_PER_DAY
+                If Player.Health + HealAmount > 100 Then
+                    HealAmount = 100 - Player.Health
+                End If
+                Call HealPlayer(HealAmount)
+                Call AddMessage("Rested 1 day")
+                Call PlayPurchaseSound
+            End If
+            Call DrawHospitalInterface
+
+        Case vbKeyS  ' Surgery
+            If Player.Health >= 100 Then
+                Call AddMessage("Already healthy!")
+            ElseIf Player.Cash < SURGERY_COST Then
+                Call AddMessage("Need $" & SURGERY_COST)
+            Else
+                Player.Cash = Player.Cash - SURGERY_COST
+                ' Surgery heals 50% of missing health
+                HealAmount = MissingHealth \ 2
+                If HealAmount < 10 Then HealAmount = 10
+                If Player.Health + HealAmount > 100 Then
+                    HealAmount = 100 - Player.Health
+                End If
+                Call HealPlayer(HealAmount)
+                Call AddMessage("Surgery done!")
+                Call PlayPurchaseSound
+            End If
+            Call DrawHospitalInterface
+    End Select
+End Sub
+
+Private Sub picHospital_Click()
+    ' Allow clicking to dismiss (optional)
 End Sub

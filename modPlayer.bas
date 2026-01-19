@@ -32,10 +32,14 @@ Public HasRing As Boolean
 Public HasCondom As Boolean
 Public HasPump As Boolean
 Public HasClover As Boolean
+Public HasDiamond As Boolean
 
 ' --- Fuel Tracking ---
 Public LanternFuel As Integer
 Public TorchFuel As Integer
+
+' --- Luck System ---
+Public PlayerLuck As Integer  ' Base luck value (clover adds +20)
 
 ' --- Elevator State ---
 Public ElevatorY As Integer        ' Current Y position of elevator car
@@ -69,15 +73,31 @@ Public Sub InitPlayer()
     HasCondom = False
     HasPump = False
     HasClover = False
+    HasDiamond = False
 
-    ' Reset fuel
+    ' Reset fuel and luck
     LanternFuel = 0
     TorchFuel = 0
+    PlayerLuck = 0
 
     ' Elevator starts at top with limited depth
     ElevatorY = 3  ' Top position (town level)
     MaxElevatorDepth = MIN_ELEVATOR_DEPTH
 End Sub
+
+' ============================================================================
+' Luck Calculation
+' ============================================================================
+Public Function GetPlayerLuck() As Integer
+    Dim Luck As Integer
+    Luck = PlayerLuck
+
+    If HasClover Then
+        Luck = Luck + 20
+    End If
+
+    GetPlayerLuck = Luck
+End Function
 
 ' ============================================================================
 ' Player Movement
@@ -199,6 +219,9 @@ Public Sub EnterCell(ByVal X As Integer, ByVal Y As Integer)
             DigCost = CalculateDigCost()
             Player.Cash = Player.Cash - DigCost
 
+            ' Play appropriate digging sound based on material
+            Call PlayMiningSound(Modifier)
+
             ' Check for modifiers (minerals/hazards)
             Call HandleModifier(X, Y, Modifier)
 
@@ -211,17 +234,59 @@ Public Sub EnterCell(ByVal X As Integer, ByVal Y As Integer)
 
         Case CELL_WATER
             ' Take water damage
+            Call PlayWaterSplash
             Call InjurePlayer(DAMAGE_WATER)
 
         Case CELL_WHIRLPOOL
             ' Take whirlpool damage and flood nearby
+            Call PlaySpringSound
             Call InjurePlayer(DAMAGE_WHIRLPOOL)
             Call FloodNearby(X, Y)
 
         Case CELL_CAVE
             ' Take cave-in damage
+            Call PlayCaveInSound
             Call InjurePlayer(DAMAGE_CAVEIN)
             Call TriggerCaveIn(X, Y)
+    End Select
+End Sub
+
+' ============================================================================
+' Mining Sound Based on Material
+' ============================================================================
+Private Sub PlayMiningSound(ByVal Modifier As Integer)
+    Select Case Modifier
+        Case MOD_SILVER, MOD_GOLD, MOD_PLATINUM, MOD_DIAMOND
+            ' Found valuable mineral!
+            Call PlayMineralSound
+
+        Case MOD_SANDSTONE
+            ' Soft sandstone
+            Call PlaySandstoneSound
+
+        Case MOD_VOLCANIC
+            ' Hard volcanic rock
+            Call PlayVolcanicSound
+
+        Case MOD_GRANITE
+            ' Hard granite
+            Call PlayGraniteSound
+
+        Case MOD_WATER, MOD_WHIRLPOOL, MOD_SPRING
+            ' Water-related
+            Call PlayWaterSplash
+
+        Case MOD_CAVEIN
+            ' Cave-in rumble
+            Call PlayCaveInSound
+
+        Case MOD_CLOVER, MOD_PUMP
+            ' Found an item
+            Call PlayItemSound
+
+        Case Else
+            ' Regular digging
+            Call PlayDigSound
     End Select
 End Sub
 
@@ -365,21 +430,54 @@ End Sub
 ' ============================================================================
 ' Elevator Control
 ' ============================================================================
+Public Function IsInElevator() As Boolean
+    ' Check if player is in the elevator car
+    IsInElevator = (Player.X = GRID_COLS - 1 And Player.Y = ElevatorY)
+End Function
+
 Public Sub ElevatorToTop()
     ' Only works if player is in elevator
-    If Player.X = GRID_COLS - 1 And Player.Y = ElevatorY Then
+    If IsInElevator() Then
         ElevatorY = 3  ' Town level
         Player.Y = ElevatorY
+        Call PlayElevatorSound
     End If
 End Sub
 
 Public Sub ElevatorToBottom()
     ' Only works if player is in elevator
-    If Player.X = GRID_COLS - 1 And Player.Y = ElevatorY Then
+    If IsInElevator() Then
         ElevatorY = MaxElevatorDepth
         Player.Y = ElevatorY
+        Call PlayElevatorSound
     End If
 End Sub
+
+Public Function ElevatorUp() As Boolean
+    ' Move elevator up one row (if player is in elevator)
+    ElevatorUp = False
+    If Not IsInElevator() Then Exit Function
+
+    If ElevatorY > 3 Then  ' Can't go above town level
+        ElevatorY = ElevatorY - 1
+        Player.Y = ElevatorY
+        Call PlayElevatorSound
+        ElevatorUp = True
+    End If
+End Function
+
+Public Function ElevatorDown() As Boolean
+    ' Move elevator down one row (if player is in elevator)
+    ElevatorDown = False
+    If Not IsInElevator() Then Exit Function
+
+    If ElevatorY < MaxElevatorDepth Then  ' Can't go below max depth
+        ElevatorY = ElevatorY + 1
+        Player.Y = ElevatorY
+        Call PlayElevatorSound
+        ElevatorDown = True
+    End If
+End Function
 
 Public Sub UpgradeElevator()
     If MaxElevatorDepth < MAX_MINE_DEPTH Then

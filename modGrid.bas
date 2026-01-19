@@ -21,6 +21,22 @@ Public ViewportX As Integer  ' Left column of viewport
 Public ViewportY As Integer  ' Top row of viewport
 
 ' ============================================================================
+' Helper function to check if column is a building wall
+' ============================================================================
+Private Function IsBuildingWall(ByVal X As Integer) As Boolean
+    ' Hospital walls (3, 4, 6) - door is 5
+    ' Bank walls (10, 12, 13) - door is 11
+    ' Saloon walls (17, 18, 20, 21) - door is 19
+    ' Store walls (24, 26, 27) - door is 25
+    Select Case X
+        Case 3, 4, 6, 10, 12, 13, 17, 18, 20, 21, 24, 26, 27
+            IsBuildingWall = True
+        Case Else
+            IsBuildingWall = False
+    End Select
+End Function
+
+' ============================================================================
 ' Grid Initialization
 ' ============================================================================
 Public Sub InitializeGrid()
@@ -39,24 +55,36 @@ Public Sub InitializeGrid()
             If Y <= 2 Then
                 Grid(X, Y).CellType = CELL_AIR
 
-            ' Row 3: Town level with doors and elevator
+            ' Row 3: Town level with buildings, doors and elevator
             ElseIf Y = 3 Then
                 If X = GRID_COLS - 1 Then
                     ' Elevator car starts here
                     Grid(X, Y).CellType = CELL_ELEVATOR_CAR
-                ElseIf X = DOOR_BANK Then
+                ElseIf X = DOOR_OUTHOUSE Then
+                    ' Outhouse door
                     Grid(X, Y).CellType = CELL_DOOR
-                    Grid(X, Y).DoorTarget = 1  ' Bank
-                ElseIf X = DOOR_STORE Then
-                    Grid(X, Y).CellType = CELL_DOOR
-                    Grid(X, Y).DoorTarget = 2  ' Store
+                    Grid(X, Y).DoorTarget = BUILDING_OUTHOUSE
                 ElseIf X = DOOR_HOSPITAL Then
+                    ' Hospital door
                     Grid(X, Y).CellType = CELL_DOOR
-                    Grid(X, Y).DoorTarget = 3  ' Hospital
+                    Grid(X, Y).DoorTarget = BUILDING_HOSPITAL
+                ElseIf X = DOOR_BANK Then
+                    ' Bank door
+                    Grid(X, Y).CellType = CELL_DOOR
+                    Grid(X, Y).DoorTarget = BUILDING_BANK
                 ElseIf X = DOOR_SALOON Then
+                    ' Saloon door
                     Grid(X, Y).CellType = CELL_DOOR
-                    Grid(X, Y).DoorTarget = 4  ' Saloon
+                    Grid(X, Y).DoorTarget = BUILDING_SALOON
+                ElseIf X = DOOR_STORE Then
+                    ' Store door
+                    Grid(X, Y).CellType = CELL_DOOR
+                    Grid(X, Y).DoorTarget = BUILDING_STORE
+                ElseIf IsBuildingWall(X) Then
+                    ' Building walls (not doors) - still CELL_AIR but rendered differently
+                    Grid(X, Y).CellType = CELL_AIR
                 Else
+                    ' Sky/open area
                     Grid(X, Y).CellType = CELL_AIR
                 End If
 
@@ -88,19 +116,19 @@ Public Sub InitializeGrid()
 End Sub
 
 ' ============================================================================
-' Random Modifier Generation
+' Random Modifier Generation (Updated with new modifiers)
 ' ============================================================================
 Private Function GenerateModifier() As Integer
     Dim RandVal As Integer
 
-    ' Only some cells have modifiers (about 20% chance)
-    If Rnd * 100 > 20 Then
+    ' Only some cells have modifiers (about 25% chance)
+    If Rnd * 100 > 25 Then
         GenerateModifier = MOD_NONE
         Exit Function
     End If
 
-    ' Generate random value 1-1000
-    RandVal = Int(Rnd * 1000) + 1
+    ' Generate random value 1-1040 (matching JS version)
+    RandVal = Int(Rnd * 1040) + 1
 
     If RandVal <= CHANCE_PLATINUM Then
         GenerateModifier = MOD_PLATINUM
@@ -108,16 +136,31 @@ Private Function GenerateModifier() As Integer
         GenerateModifier = MOD_GOLD
     ElseIf RandVal <= CHANCE_SILVER Then
         GenerateModifier = MOD_SILVER
+    ElseIf RandVal <= CHANCE_SPRING Then
+        GenerateModifier = MOD_SPRING
     ElseIf RandVal <= CHANCE_CAVEIN Then
         GenerateModifier = MOD_CAVEIN
-    ElseIf RandVal <= CHANCE_WATER Then
-        GenerateModifier = MOD_WATER
-    ElseIf RandVal <= CHANCE_WHIRLPOOL Then
-        GenerateModifier = MOD_WHIRLPOOL
+    ElseIf RandVal <= CHANCE_VOLCANIC Then
+        GenerateModifier = MOD_VOLCANIC
     Else
-        ' Granite or nothing
-        If Rnd < 0.3 Then
-            GenerateModifier = MOD_GRANITE
+        ' Rare items and other materials
+        Dim RareRoll As Integer
+        RareRoll = Int(Rnd * 1000) + 1
+
+        If RareRoll <= 2 Then
+            GenerateModifier = MOD_DIAMOND   ' Very rare
+        ElseIf RareRoll <= 5 Then
+            GenerateModifier = MOD_PUMP      ' Very rare
+        ElseIf RareRoll <= 8 Then
+            GenerateModifier = MOD_CLOVER    ' Very rare
+        ElseIf RareRoll <= 100 Then
+            GenerateModifier = MOD_GRANITE   ' Uncommon
+        ElseIf RareRoll <= 200 Then
+            GenerateModifier = MOD_SANDSTONE ' Uncommon
+        ElseIf RareRoll <= 250 Then
+            GenerateModifier = MOD_WATER     ' Uncommon
+        ElseIf RareRoll <= 280 Then
+            GenerateModifier = MOD_WHIRLPOOL ' Rare
         Else
             GenerateModifier = MOD_NONE
         End If

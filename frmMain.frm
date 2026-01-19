@@ -1,41 +1,55 @@
 VERSION 5.00
-Begin VB.Form frmMain
+Begin VB.Form frmMain 
    BackColor       =   &H00000000&
    Caption         =   "MinerVGA"
-   ClientHeight    =   7800
+   ClientHeight    =   6480
    ClientLeft      =   60
    ClientTop       =   450
-   ClientWidth     =   12000
+   ClientWidth     =   9720
    KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
-   ScaleHeight     =   520
+   ScaleHeight     =   432
    ScaleMode       =   3  'Pixel
-   ScaleWidth      =   800
+   ScaleWidth      =   648
    StartUpPosition =   2  'CenterScreen
-   Begin VB.Timer tmrGame
+   Begin VB.Timer tmrGame 
       Enabled         =   0   'False
       Interval        =   50
       Left            =   120
-      Top             =   7320
+      Top             =   6000
    End
-   Begin VB.PictureBox picGame
+   Begin VB.PictureBox picTilesetHolder 
+      AutoRedraw      =   -1  'True
+      AutoSize        =   -1  'True
+      BackColor       =   &H00000000&
+      Height          =   2535
+      Left            =   0
+      ScaleHeight     =   165
+      ScaleMode       =   3  'Pixel
+      ScaleWidth      =   125
+      TabIndex        =   2
+      Top             =   0
+      Visible         =   0   'False
+      Width           =   1935
+   End
+   Begin VB.PictureBox picGame 
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
-      Height          =   7215
+      Height          =   6120
       Left            =   0
-      ScaleHeight     =   477
+      ScaleHeight     =   404
       ScaleMode       =   3  'Pixel
-      ScaleWidth      =   765
+      ScaleWidth      =   644
       TabIndex        =   0
       Top             =   0
-      Width           =   11535
+      Width           =   9720
    End
-   Begin VB.Label lblStatus
+   Begin VB.Label lblStatus 
       BackColor       =   &H00000000&
-      Caption         =   "Health: 100%  |  Cash: $1500  |  Depth: 0 ft"
-      BeginProperty Font
+      Caption         =   "Press H for Help"
+      BeginProperty Font 
          Name            =   "Consolas"
-         Size            =   9.75
+         Size            =   8.25
          Charset         =   0
          Weight          =   400
          Underline       =   0   'False
@@ -43,11 +57,11 @@ Begin VB.Form frmMain
          Strikethrough   =   0   'False
       EndProperty
       ForeColor       =   &H0000FF00&
-      Height          =   285
+      Height          =   255
       Left            =   0
       TabIndex        =   1
-      Top             =   7320
-      Width           =   11535
+      Top             =   6180
+      Width           =   9735
    End
 End
 Attribute VB_Name = "frmMain"
@@ -61,23 +75,31 @@ Option Explicit
 ' MinerVGA - Main Game Form
 ' ============================================================================
 
-' --- Image Storage ---
-Private picPlayerLeft As StdPicture
-Private picPlayerRight As StdPicture
-Private picDirt1 As StdPicture
-Private picDirt2 As StdPicture
-Private picDug As StdPicture
-Private picRock As StdPicture
-Private picWater As StdPicture
-Private picWhirlpool As StdPicture
-Private picCave As StdPicture
-Private picElevator As StdPicture
-Private picRoad As StdPicture
-Private picSky As StdPicture
-Private picDoor As StdPicture
+' --- Windows API for Transparent Drawing ---
+Private Declare Function TransparentBlt Lib "msimg32.dll" ( _
+    ByVal hdcDest As Long, ByVal xDest As Long, ByVal yDest As Long, _
+    ByVal nWidthDest As Long, ByVal nHeightDest As Long, _
+    ByVal hdcSrc As Long, ByVal xSrc As Long, ByVal ySrc As Long, _
+    ByVal nWidthSrc As Long, ByVal nHeightSrc As Long, _
+    ByVal crTransparent As Long) As Long
+
+Private Declare Function BitBlt Lib "gdi32" ( _
+    ByVal hDestDC As Long, ByVal X As Long, ByVal Y As Long, _
+    ByVal nWidth As Long, ByVal nHeight As Long, _
+    ByVal hSrcDC As Long, ByVal xSrc As Long, ByVal ySrc As Long, _
+    ByVal dwRop As Long) As Long
+
+Private Const SRCCOPY = &HCC0020
+
+' --- Transparent color (white) ---
+Private Const TRANSPARENT_COLOR As Long = &HFFFFFF
+
+' --- Sprite Array Storage ---
+Private Sprites(0 To SPR_COUNT - 1) As StdPicture
 
 ' --- Colors for drawing (fallback if no images) ---
-Private Const COLOR_SKY As Long = &HFFFF00     ' Cyan
+' NOTE: Use & suffix on hex values to ensure Long type (prevents sign issues)
+Private Const COLOR_SKY As Long = &HFFFF00      ' Cyan
 Private Const COLOR_DIRT As Long = &H4080&      ' Brown
 Private Const COLOR_DUG As Long = &H404040      ' Dark gray
 Private Const COLOR_ROCK As Long = &H808080     ' Gray
@@ -86,12 +108,25 @@ Private Const COLOR_ROAD As Long = &H606060     ' Medium gray
 Private Const COLOR_ELEVATOR As Long = &H8080&  ' Dark yellow
 Private Const COLOR_PLAYER As Long = &HFFFF&    ' Yellow
 Private Const COLOR_SILVER As Long = &HC0C0C0   ' Silver
-Private Const COLOR_GOLD As Long = &H00D7FF    ' Gold
-Private Const COLOR_PLATINUM As Long = &HFFFFFF ' White/Platinum
+Private Const COLOR_GOLD As Long = &HD7FF&      ' Gold (BGR: 0, 215, 255)
+Private Const COLOR_PLATINUM As Long = &HFFFFFF  ' White/Platinum
+Private Const COLOR_SPRING As Long = &HFFFF80   ' Light cyan
+Private Const COLOR_VOLCANIC As Long = &H404080  ' Dark red-brown
+Private Const COLOR_SANDSTONE As Long = &H80C0FF  ' Sandy color
 
 ' --- Rendering State ---
 Private UseImages As Boolean
 Private LastDirection As Integer
+Private SpritesLoaded As Boolean
+
+' --- Sprite filename mapping ---
+Private SpriteFiles(0 To SPR_COUNT - 1) As String
+' --- Tileset Storage ---
+Private picTileset As StdPicture
+Private picTitleScreen As StdPicture
+Private TilesetCols As Integer
+Private TilesetRows As Integer
+
 
 ' ============================================================================
 ' Form Events
@@ -100,27 +135,58 @@ Private Sub Form_Load()
     ' Initialize random seed
     Randomize Timer
 
-    ' Try to load images
-    Call LoadImages
+    ' Initialize sprite filenames
+    Call InitSpriteFilenames
+
+    ' Try to load sprites
+    Call LoadSprites
 
     ' Initialize game
     Call InitPlayer
     Call InitializeGrid
+    Call ClearMessages
 
     ' Set game state
     GameState = STATE_TITLE
     SoundEnabled = True
+
+    ' Get twips conversion
+    Dim TwipsX As Single, TwipsY As Single
+    TwipsX = Screen.TwipsPerPixelX
+    TwipsY = Screen.TwipsPerPixelY
+    If TwipsX <= 0 Then TwipsX = 15
+    If TwipsY <= 0 Then TwipsY = 15
+
+    ' Initialize game area (includes sidebar area)
+    picGame.ScaleMode = vbPixels
+    picGame.AutoRedraw = True
+    picGame.BackColor = vbBlack
+    picGame.Visible = True
+    picGame.Move 0, 0, SCREEN_WIDTH * TwipsX, GAME_HEIGHT * TwipsY
 
     ' Show title screen
     Call ShowTitleScreen
 End Sub
 
 Private Sub Form_Resize()
-    ' Resize picture box to fit form
-    picGame.Width = Me.ScaleWidth
-    picGame.Height = Me.ScaleHeight - 25
-    lblStatus.Top = picGame.Height + 5
-    lblStatus.Width = Me.ScaleWidth
+    ' Fixed layout
+    Dim TwipsX As Single, TwipsY As Single
+
+    ' Don't resize if form is minimized
+    If Me.WindowState = vbMinimized Then Exit Sub
+
+    TwipsX = Screen.TwipsPerPixelX
+    TwipsY = Screen.TwipsPerPixelY
+
+    ' Guard against invalid values
+    If TwipsX <= 0 Then TwipsX = 15
+    If TwipsY <= 0 Then TwipsY = 15
+
+    ' Position game area (includes sidebar)
+    picGame.Move 0, 0, SCREEN_WIDTH * TwipsX, GAME_HEIGHT * TwipsY
+
+    ' Position status bar below
+    lblStatus.Move 0, GAME_HEIGHT * TwipsY + (5 * TwipsY), SCREEN_WIDTH * TwipsX
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
@@ -129,14 +195,16 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
         ' Any key starts the game
         GameState = STATE_PLAYING
         tmrGame.Enabled = True
+        Call AddMessage("Digging...")
         Call RenderGame
         Exit Sub
     End If
 
-    If GameState = STATE_DEAD Or GameState = STATE_WON Then
+    If GameState = STATE_DEAD Or GameState = STATE_WON Or GameState = STATE_BANKRUPT Then
         ' Any key returns to title
         Call InitPlayer
         Call InitializeGrid
+        Call ClearMessages
         GameState = STATE_TITLE
         Call ShowTitleScreen
         Exit Sub
@@ -144,7 +212,25 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
 
     ' Game is playing - handle input
     Select Case KeyCode
-        Case KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN
+        Case KEY_UP
+            ' If in elevator, move elevator up; otherwise normal movement
+            If IsInElevator() Then
+                Call ElevatorUp
+            Else
+                Call MovePlayer(KeyCode)
+            End If
+            LastDirection = KeyCode
+
+        Case KEY_DOWN
+            ' If in elevator, move elevator down; otherwise normal movement
+            If IsInElevator() Then
+                Call ElevatorDown
+            Else
+                Call MovePlayer(KeyCode)
+            End If
+            LastDirection = KeyCode
+
+        Case KEY_LEFT, KEY_RIGHT
             Call MovePlayer(KeyCode)
             LastDirection = KeyCode
 
@@ -180,6 +266,11 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
 
         Case KEY_Q
             SoundEnabled = Not SoundEnabled
+            If SoundEnabled Then
+                Call AddMessage("Sound ON")
+            Else
+                Call AddMessage("Sound OFF")
+            End If
     End Select
 
     ' Check for death
@@ -187,7 +278,19 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
         GameState = STATE_DEAD
         tmrGame.Enabled = False
         Call ShowDeathScreen
+        Exit Sub
     End If
+
+    ' Check for bankruptcy
+    If Player.Cash < BANKRUPTCY_LIMIT Then
+        GameState = STATE_BANKRUPT
+        tmrGame.Enabled = False
+        Call ShowBankruptScreen
+        Exit Sub
+    End If
+
+    ' Check for win condition
+    Call CheckWinCondition
 End Sub
 
 ' ============================================================================
@@ -198,36 +301,171 @@ Private Sub tmrGame_Timer()
 End Sub
 
 ' ============================================================================
-' Image Loading
+' Sprite Loading
 ' ============================================================================
-Private Sub LoadImages()
-    On Error GoTo NoImages
 
-    Dim ImagePath As String
-    ImagePath = App.Path & "\images\"
 
-    ' Try to load images (will be BMP files)
-    Set picPlayerLeft = LoadPicture(ImagePath & "player_left.bmp")
-    Set picPlayerRight = LoadPicture(ImagePath & "player_right.bmp")
-    Set picDirt1 = LoadPicture(ImagePath & "dirt1.bmp")
-    Set picDirt2 = LoadPicture(ImagePath & "dirt2.bmp")
-    Set picDug = LoadPicture(ImagePath & "dug.bmp")
-    Set picRock = LoadPicture(ImagePath & "rock.bmp")
-    Set picWater = LoadPicture(ImagePath & "water.bmp")
-    Set picWhirlpool = LoadPicture(ImagePath & "wp.bmp")
-    Set picCave = LoadPicture(ImagePath & "cave.bmp")
-    Set picElevator = LoadPicture(ImagePath & "elevator.bmp")
-    Set picRoad = LoadPicture(ImagePath & "divider.bmp")
-    Set picSky = LoadPicture(ImagePath & "sky.bmp")
-    Set picDoor = LoadPicture(ImagePath & "door.bmp")
+Private Sub InitSpriteFilenames()
+    ' Initialize tileset dimensions (8 columns x 7 rows)
+    TilesetCols = 8
+    TilesetRows = 7
+End Sub
 
+Private Sub LoadSprites()
+    On Error GoTo NoSprites
+
+    Dim TilesetPath As String
+    Dim TitlePath As String
+
+    ' Try javascript folder first (where BMP files are)
+    TilesetPath = App.Path & "\tileset.bmp"
+    TitlePath = App.Path & "\title-screen.bmp"
+
+    ' Load the tileset into the hidden PictureBox for TransparentBlt
+    picTilesetHolder.Picture = LoadPicture(TilesetPath)
+
+    ' Also keep StdPicture for compatibility
+    Set picTileset = LoadPicture(TilesetPath)
+
+    ' Load title screen
+    On Error Resume Next
+    Set picTitleScreen = LoadPicture(TitlePath)
+    On Error GoTo 0
+
+    SpritesLoaded = True
     UseImages = True
     Exit Sub
 
-NoImages:
+NoSprites:
     ' Fall back to colored rectangles
+    SpritesLoaded = False
     UseImages = False
 End Sub
+
+Private Sub DrawSprite(ByVal SpriteIndex As Integer, ByVal DestX As Integer, ByVal DestY As Integer)
+    ' Draw a sprite from the tileset to the game picture box (normal, no transparency)
+    Dim SrcX As Integer, SrcY As Integer
+    Dim Col As Integer, Row As Integer
+
+    If Not SpritesLoaded Then Exit Sub
+    If SpriteIndex < 0 Or SpriteIndex >= SPR_COUNT Then Exit Sub
+
+    ' Calculate source position in tileset
+    Col = SpriteIndex Mod TilesetCols
+    Row = SpriteIndex \ TilesetCols
+
+    SrcX = Col * CELL_WIDTH
+    SrcY = Row * CELL_HEIGHT
+
+    ' Use PaintPicture for normal sprites (no transparency)
+    picGame.PaintPicture picTileset, DestX, DestY, CELL_WIDTH, CELL_HEIGHT, _
+                         SrcX, SrcY, CELL_WIDTH, CELL_HEIGHT
+End Sub
+
+Private Sub DrawSpriteTransparent(ByVal SpriteIndex As Integer, ByVal DestX As Integer, ByVal DestY As Integer)
+    ' Draw a sprite with transparency (white = transparent) - used for player only
+    Dim SrcX As Long, SrcY As Long
+    Dim Col As Integer, Row As Integer
+    Dim Result As Long
+
+    If Not SpritesLoaded Then Exit Sub
+    If SpriteIndex < 0 Or SpriteIndex >= SPR_COUNT Then Exit Sub
+
+    ' Calculate source position in tileset
+    Col = SpriteIndex Mod TilesetCols
+    Row = SpriteIndex \ TilesetCols
+
+    SrcX = Col * CELL_WIDTH
+    SrcY = Row * CELL_HEIGHT
+
+    ' Use TransparentBlt for transparency (white = transparent)
+    Result = TransparentBlt(picGame.hDC, DestX, DestY, CELL_WIDTH, CELL_HEIGHT, _
+                            picTilesetHolder.hDC, SrcX, SrcY, CELL_WIDTH, CELL_HEIGHT, _
+                            TRANSPARENT_COLOR)
+End Sub
+
+' ============================================================================
+' Town Sprite Mapping (matches JavaScript version)
+' ============================================================================
+Private Function GetTownSprite(ByVal X As Integer, ByVal Y As Integer) As Integer
+    ' Returns sprite index for town area, or -1 if default sky
+    GetTownSprite = -1
+
+    ' Row 0: Sky with bird and clouds
+    If Y = 0 Then
+        Select Case X
+            Case 2: GetTownSprite = SPR_BIRD
+            Case 9: GetTownSprite = SPR_CLOUD_LEFT
+            Case 10: GetTownSprite = SPR_CLOUD_MIDDLE
+            Case 11: GetTownSprite = SPR_CLOUD_RIGHT
+        End Select
+        Exit Function
+    End If
+
+    ' Row 1: Sky with clouds and bird
+    If Y = 1 Then
+        Select Case X
+            Case 18: GetTownSprite = SPR_CLOUD_LEFT
+            Case 19: GetTownSprite = SPR_CLOUD_RIGHT
+            Case 23: GetTownSprite = SPR_BIRD
+        End Select
+        Exit Function
+    End If
+
+    ' Row 2: Building roofs
+    If Y = 2 Then
+        Select Case X
+            ' Hospital roof (cols 3-6)
+            Case 3: GetTownSprite = SPR_ROOF_LEFT
+            Case 4, 5: GetTownSprite = SPR_ROOF_MIDDLE
+            Case 6: GetTownSprite = SPR_ROOF_RIGHT
+            ' Bank roof (cols 10-13)
+            Case 10: GetTownSprite = SPR_ROOF_LEFT
+            Case 11, 12: GetTownSprite = SPR_ROOF_MIDDLE
+            Case 13: GetTownSprite = SPR_ROOF_RIGHT
+            ' Saloon roof (cols 17-21)
+            Case 17: GetTownSprite = SPR_ROOF_LEFT
+            Case 18, 19, 20: GetTownSprite = SPR_ROOF_MIDDLE
+            Case 21: GetTownSprite = SPR_ROOF_RIGHT
+            ' Store roof (cols 24-27)
+            Case 24: GetTownSprite = SPR_ROOF_LEFT
+            Case 25, 26: GetTownSprite = SPR_ROOF_MIDDLE
+            Case 27: GetTownSprite = SPR_ROOF_RIGHT
+        End Select
+        Exit Function
+    End If
+
+    ' Row 3: Building walls, doors, and decorations
+    If Y = 3 Then
+        Select Case X
+            Case 0: GetTownSprite = SPR_CACTUS
+            Case 2: GetTownSprite = SPR_OUTHOUSE
+            ' Hospital (cols 3-6)
+            Case 3: GetTownSprite = SPR_WALL_HOSPITAL
+            Case 4: GetTownSprite = SPR_WALL
+            Case 5: GetTownSprite = SPR_DOOR  ' Hospital door
+            Case 6: GetTownSprite = SPR_WALL
+            ' Bank (cols 10-13)
+            Case 10: GetTownSprite = SPR_WALL
+            Case 11: GetTownSprite = SPR_DOOR  ' Bank door
+            Case 12: GetTownSprite = SPR_WALL
+            Case 13: GetTownSprite = SPR_WALL_BANK
+            ' Saloon (cols 17-21)
+            Case 17: GetTownSprite = SPR_WALL_DRINK
+            Case 18: GetTownSprite = SPR_WALL
+            Case 19: GetTownSprite = SPR_DOOR_SALOON  ' Saloon door
+            Case 20: GetTownSprite = SPR_WALL
+            Case 21: GetTownSprite = SPR_WALL_BROTHEL
+            ' Store (cols 24-27)
+            Case 24: GetTownSprite = SPR_WALL
+            Case 25: GetTownSprite = SPR_DOOR  ' Store door
+            Case 26: GetTownSprite = SPR_WALL
+            Case 27: GetTownSprite = SPR_WALL_WHEEL
+            Case 29: GetTownSprite = SPR_HITCHINGPOST
+        End Select
+        Exit Function
+    End If
+End Function
 
 ' ============================================================================
 ' Rendering
@@ -240,12 +478,12 @@ Private Sub RenderGame()
     ' Update viewport
     Call UpdateViewport
 
-    ' Clear screen
+    ' Clear entire screen (game area + sidebar)
     picGame.Cls
 
     ' Draw grid
-    For Y = ViewportY To ViewportY + VIEWPORT_ROWS
-        For X = ViewportX To ViewportX + VIEWPORT_COLS
+    For Y = ViewportY To ViewportY + VIEWPORT_ROWS - 1
+        For X = ViewportX To ViewportX + VIEWPORT_COLS - 1
             If X >= 0 And X < GRID_COLS And Y >= 0 And Y < GRID_ROWS Then
                 ScreenX = (X - ViewportX) * CELL_WIDTH
                 ScreenY = (Y - ViewportY) * CELL_HEIGHT
@@ -261,8 +499,8 @@ Private Sub RenderGame()
     ' Draw player
     Call DrawPlayer
 
-    ' Update status bar
-    Call UpdateStatus
+    ' Draw sidebar directly on picGame (at right side)
+    Call DrawSidebar
 
     ' Refresh display
     picGame.Refresh
@@ -273,32 +511,36 @@ Private Sub DrawCell(ByVal ScreenX As Integer, ByVal ScreenY As Integer, _
                      ByVal GridX As Integer, ByVal GridY As Integer)
 
     Dim DrawColor As Long
+    Dim SpriteIdx As Integer
+    Dim TownSprite As Integer
 
-    If UseImages Then
-        ' Draw using images
+    If UseImages And SpritesLoaded Then
+        ' Draw using tileset sprites
         Select Case CellType
             Case CELL_AIR
-                If Not picSky Is Nothing Then
-                    picGame.PaintPicture picSky, ScreenX, ScreenY
+                ' Check if this is in the town area (rows 0-3)
+                TownSprite = GetTownSprite(GridX, GridY)
+                If TownSprite >= 0 Then
+                    Call DrawSprite(TownSprite, ScreenX, ScreenY)
+                Else
+                    Call DrawSprite(SPR_SKY, ScreenX, ScreenY)
                 End If
 
             Case CELL_DOOR
-                If Not picDoor Is Nothing Then
-                    picGame.PaintPicture picDoor, ScreenX, ScreenY
+                ' Check which building door this is
+                TownSprite = GetTownSprite(GridX, GridY)
+                If TownSprite >= 0 Then
+                    Call DrawSprite(TownSprite, ScreenX, ScreenY)
                 Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), &H8000&, BF
+                    Call DrawSprite(SPR_DOOR, ScreenX, ScreenY)
                 End If
 
             Case CELL_DIRT
                 ' Alternate dirt textures based on position
                 If (GridX + GridY) Mod 2 = 0 Then
-                    If Not picDirt1 Is Nothing Then
-                        picGame.PaintPicture picDirt1, ScreenX, ScreenY
-                    End If
+                    Call DrawSprite(SPR_DIRT, ScreenX, ScreenY)
                 Else
-                    If Not picDirt2 Is Nothing Then
-                        picGame.PaintPicture picDirt2, ScreenX, ScreenY
-                    End If
+                    Call DrawSprite(SPR_DIRT2, ScreenX, ScreenY)
                 End If
 
                 ' Show modifier hint if player has light
@@ -307,53 +549,56 @@ Private Sub DrawCell(ByVal ScreenX As Integer, ByVal ScreenY As Integer, _
                 End If
 
             Case CELL_DUG
-                If Not picDug Is Nothing Then
-                    picGame.PaintPicture picDug, ScreenX, ScreenY
-                Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), COLOR_DUG, BF
-                End If
+                Call DrawSprite(SPR_CLEARED, ScreenX, ScreenY)
 
             Case CELL_ELEVATOR, CELL_ELEVATOR_CAR
-                If Not picElevator Is Nothing Then
-                    picGame.PaintPicture picElevator, ScreenX, ScreenY
+                ' Draw elevator shaft or car based on current elevator position
+                If GridY = ElevatorY Then
+                    ' Elevator car is here
+                    Call DrawSprite(SPR_ELEVATOR_MIDDLE, ScreenX, ScreenY)
+                ElseIf GridY = 3 Then
+                    ' Top of shaft (above ground)
+                    Call DrawSprite(SPR_ELEVATOR_TOP_ABOVE, ScreenX, ScreenY)
+                ElseIf GridY = 4 Then
+                    ' Road level shaft
+                    Call DrawSprite(SPR_SHAFT, ScreenX, ScreenY)
                 Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), COLOR_ELEVATOR, BF
+                    ' Underground shaft
+                    Call DrawSprite(SPR_SHAFT, ScreenX, ScreenY)
                 End If
 
             Case CELL_ROAD
-                If Not picRoad Is Nothing Then
-                    picGame.PaintPicture picRoad, ScreenX, ScreenY
-                Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), COLOR_ROAD, BF
-                End If
+                Call DrawSprite(SPR_BORDER, ScreenX, ScreenY)
 
             Case CELL_WATER
-                If Not picWater Is Nothing Then
-                    picGame.PaintPicture picWater, ScreenX, ScreenY
-                Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), COLOR_WATER, BF
-                End If
+                Call DrawSprite(SPR_WATER, ScreenX, ScreenY)
 
             Case CELL_GRANITE
-                If Not picRock Is Nothing Then
-                    picGame.PaintPicture picRock, ScreenX, ScreenY
-                Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), COLOR_ROCK, BF
-                End If
+                Call DrawSprite(SPR_GRANITE, ScreenX, ScreenY)
 
             Case CELL_CAVE
-                If Not picCave Is Nothing Then
-                    picGame.PaintPicture picCave, ScreenX, ScreenY
-                Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), &H404080, BF
-                End If
+                Call DrawSprite(SPR_CAVEIN, ScreenX, ScreenY)
 
             Case CELL_WHIRLPOOL
-                If Not picWhirlpool Is Nothing Then
-                    picGame.PaintPicture picWhirlpool, ScreenX, ScreenY
-                Else
-                    picGame.Line (ScreenX, ScreenY)-(ScreenX + CELL_WIDTH - 1, ScreenY + CELL_HEIGHT - 1), &HFF8000, BF
-                End If
+                Call DrawSprite(SPR_WATER, ScreenX, ScreenY)
+
+            Case CELL_SPRING
+                Call DrawSprite(SPR_SPRING, ScreenX, ScreenY)
+
+            Case CELL_SANDSTONE
+                Call DrawSprite(SPR_SANDSTONE, ScreenX, ScreenY)
+
+            Case CELL_VOLCANIC
+                Call DrawSprite(SPR_VOLCANIC, ScreenX, ScreenY)
+
+            Case CELL_WALL
+                Call DrawSprite(SPR_WALL, ScreenX, ScreenY)
+
+            Case CELL_ROOF
+                Call DrawSprite(SPR_ROOF_MIDDLE, ScreenX, ScreenY)
+
+            Case Else
+                Call DrawSprite(SPR_BLACK, ScreenX, ScreenY)
         End Select
     Else
         ' Draw using colored rectangles (fallback)
@@ -364,10 +609,12 @@ Private Sub DrawCell(ByVal ScreenX As Integer, ByVal ScreenY As Integer, _
             Case CELL_DUG: DrawColor = COLOR_DUG
             Case CELL_ELEVATOR, CELL_ELEVATOR_CAR: DrawColor = COLOR_ELEVATOR
             Case CELL_ROAD: DrawColor = COLOR_ROAD
-            Case CELL_WATER: DrawColor = COLOR_WATER
+            Case CELL_WATER, CELL_WHIRLPOOL: DrawColor = COLOR_WATER
             Case CELL_GRANITE: DrawColor = COLOR_ROCK
             Case CELL_CAVE: DrawColor = &H404080
-            Case CELL_WHIRLPOOL: DrawColor = &HFF8000
+            Case CELL_SPRING: DrawColor = COLOR_SPRING
+            Case CELL_SANDSTONE: DrawColor = COLOR_SANDSTONE
+            Case CELL_VOLCANIC: DrawColor = COLOR_VOLCANIC
             Case Else: DrawColor = 0
         End Select
 
@@ -392,10 +639,16 @@ Private Sub DrawModifierHint(ByVal ScreenX As Integer, ByVal ScreenY As Integer,
         Case MOD_SILVER: HintColor = COLOR_SILVER
         Case MOD_GOLD: HintColor = COLOR_GOLD
         Case MOD_PLATINUM: HintColor = COLOR_PLATINUM
-        Case MOD_CAVEIN: HintColor = &H0000FF  ' Red warning
+        Case MOD_CAVEIN: HintColor = &HFF&         ' Red warning
         Case MOD_WATER: HintColor = COLOR_WATER
-        Case MOD_WHIRLPOOL: HintColor = &HFF8000
+        Case MOD_WHIRLPOOL: HintColor = &HFF8000   ' Orange
         Case MOD_GRANITE: HintColor = COLOR_ROCK
+        Case MOD_DIAMOND: HintColor = &HFFFF00     ' Cyan for diamond
+        Case MOD_PUMP: HintColor = &HFF00&         ' Green for pump
+        Case MOD_CLOVER: HintColor = &HFF00&       ' Green for clover
+        Case MOD_SPRING: HintColor = &HFFFF80      ' Light blue for spring
+        Case MOD_VOLCANIC: HintColor = COLOR_VOLCANIC
+        Case MOD_SANDSTONE: HintColor = COLOR_SANDSTONE
         Case Else: Exit Sub
     End Select
 
@@ -408,15 +661,12 @@ Private Sub DrawPlayer()
     ScreenX = (Player.X - ViewportX) * CELL_WIDTH
     ScreenY = (Player.Y - ViewportY) * CELL_HEIGHT
 
-    If UseImages Then
+    If UseImages And SpritesLoaded Then
+        ' Use transparent drawing for player only (removes white background)
         If Player.Facing = FACING_LEFT Then
-            If Not picPlayerLeft Is Nothing Then
-                picGame.PaintPicture picPlayerLeft, ScreenX, ScreenY
-            End If
+            Call DrawSpriteTransparent(SPR_PLAYER_LEFT, ScreenX, ScreenY)
         Else
-            If Not picPlayerRight Is Nothing Then
-                picGame.PaintPicture picPlayerRight, ScreenX, ScreenY
-            End If
+            Call DrawSpriteTransparent(SPR_PLAYER_RIGHT, ScreenX, ScreenY)
         End If
     Else
         ' Draw player as colored rectangle
@@ -425,28 +675,247 @@ Private Sub DrawPlayer()
 End Sub
 
 ' ============================================================================
+' Sidebar Drawing (draws directly to picGame at GAME_WIDTH offset)
+' ============================================================================
+Private Sub DrawSidebar()
+    Dim SX As Integer  ' Sidebar X offset
+    Dim Y As Integer
+    Dim i As Integer
+    Dim HealthColor As Long
+
+    SX = GAME_WIDTH  ' Sidebar starts at x=512
+
+    ' Draw sidebar background
+    picGame.Line (SX, 0)-(SX + SIDEBAR_WIDTH - 1, GAME_HEIGHT - 1), &H202020, BF
+
+    ' Set font
+    picGame.FontName = "Consolas"
+    picGame.FontSize = 8
+    picGame.FontBold = True
+
+    Y = 5
+
+    ' Title
+    picGame.ForeColor = vbYellow
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "MinerVGA"
+    Y = Y + 20
+
+    ' Separator
+    picGame.Line (SX + 5, Y)-(SX + SIDEBAR_WIDTH - 10, Y), &H404040
+    Y = Y + 8
+
+    ' Minerals section
+    picGame.ForeColor = COLOR_PLATINUM
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "PT: " & Player.Platinum
+    Y = Y + 15
+
+    picGame.ForeColor = COLOR_GOLD
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "AU: " & Player.Gold
+    Y = Y + 15
+
+    picGame.ForeColor = COLOR_SILVER
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "AG: " & Player.Silver
+    Y = Y + 20
+
+    ' Separator
+    picGame.Line (SX + 5, Y)-(SX + SIDEBAR_WIDTH - 10, Y), &H404040
+    Y = Y + 8
+
+    ' Health section
+    If Player.Health > 50 Then
+        HealthColor = vbGreen
+    ElseIf Player.Health > 20 Then
+        HealthColor = vbYellow
+    Else
+        HealthColor = vbRed
+    End If
+
+    picGame.ForeColor = vbWhite
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "Health %"
+    Y = Y + 15
+
+    picGame.ForeColor = HealthColor
+    picGame.FontSize = 12
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "   " & Player.Health
+    picGame.FontSize = 8
+    Y = Y + 25
+
+    ' Separator
+    picGame.Line (SX + 5, Y)-(SX + SIDEBAR_WIDTH - 10, Y), &H404040
+    Y = Y + 8
+
+    ' Bank Account
+    picGame.ForeColor = vbCyan
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "Bank Accnt"
+    Y = Y + 15
+
+    If Player.Cash >= 0 Then
+        picGame.ForeColor = vbCyan
+    Else
+        picGame.ForeColor = vbRed
+    End If
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "$ " & Format(Player.Cash, "#,##0.00")
+    Y = Y + 25
+
+    ' Separator
+    picGame.Line (SX + 5, Y)-(SX + SIDEBAR_WIDTH - 10, Y), &H404040
+    Y = Y + 8
+
+    ' Messages section
+    picGame.ForeColor = vbWhite
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "Messages"
+    Y = Y + 15
+
+    picGame.FontSize = 7
+    For i = 0 To 5
+        If i < MessageCount And Messages(i) <> "" Then
+            ' Color code messages
+            If InStr(Messages(i), "Silver") > 0 Then
+                picGame.ForeColor = COLOR_SILVER
+            ElseIf InStr(Messages(i), "Gold") > 0 Then
+                picGame.ForeColor = COLOR_GOLD
+            ElseIf InStr(Messages(i), "Platinum") > 0 Then
+                picGame.ForeColor = COLOR_PLATINUM
+            ElseIf InStr(Messages(i), "Spring") > 0 Or InStr(Messages(i), "damage") > 0 Then
+                picGame.ForeColor = vbRed
+            ElseIf InStr(Messages(i), "found") > 0 Then
+                picGame.ForeColor = vbYellow
+            Else
+                picGame.ForeColor = &H808080
+            End If
+            picGame.CurrentX = SX + 5
+            picGame.CurrentY = Y
+            picGame.Print Left(Messages(i), 16)
+            Y = Y + 12
+        End If
+    Next i
+    picGame.FontSize = 8
+    Y = Y + 10
+
+    ' Separator
+    picGame.Line (SX + 5, Y)-(SX + SIDEBAR_WIDTH - 10, Y), &H404040
+    Y = Y + 8
+
+    ' Inventory section
+    picGame.ForeColor = vbWhite
+    picGame.CurrentX = SX + 5
+    picGame.CurrentY = Y
+    picGame.Print "You have"
+    Y = Y + 18
+
+    ' Draw inventory icons
+    Call DrawSidebarInventory(SX, Y)
+End Sub
+
+Private Sub DrawSidebarInventory(ByVal SX As Integer, ByVal StartY As Integer)
+    Dim X As Integer, Y As Integer
+
+    X = SX + 5
+    Y = StartY
+
+    ' Draw item icons for owned items
+    If HasShovel Then
+        Call DrawSprite(SPR_SHOVEL, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasPickaxe Then
+        Call DrawSprite(SPR_PICKAXE, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasDrill Then
+        Call DrawSprite(SPR_DRILL, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasLantern Then
+        Call DrawSprite(SPR_LAMP, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    ' Move to next row if needed
+    If X > SX + SIDEBAR_WIDTH - CELL_WIDTH Then
+        X = SX + 5
+        Y = Y + CELL_HEIGHT + 2
+    End If
+
+    If HasBucket Then
+        Call DrawSprite(SPR_BUCKET, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasTorch Then
+        Call DrawSprite(SPR_TORCH, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasDynamite Then
+        Call DrawSprite(SPR_DYNAMITE, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasRing Then
+        Call DrawSprite(SPR_RING, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasCondom Then
+        Call DrawSprite(SPR_CONDOM, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    ' Move to next row if needed
+    If X > SX + SIDEBAR_WIDTH - CELL_WIDTH Then
+        X = SX + 5
+        Y = Y + CELL_HEIGHT + 2
+    End If
+
+    If HasPump Then
+        Call DrawSprite(SPR_PUMP, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasClover Then
+        Call DrawSprite(SPR_CLOVER, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+
+    If HasDiamond Then
+        Call DrawSprite(SPR_DIAMOND, X, Y)
+        X = X + CELL_WIDTH + 2
+    End If
+End Sub
+
+' ============================================================================
 ' Status Display
 ' ============================================================================
 Private Sub UpdateStatus()
-    Dim HealthColor As Long
-    Dim StatusText As String
     Dim Depth As Integer
 
     Depth = GetDepthInFeet(Player.Y)
 
-    ' Health color (red if low)
-    If Player.Health < 20 Then
-        lblStatus.ForeColor = vbRed
-    Else
-        lblStatus.ForeColor = vbGreen
-    End If
-
-    StatusText = "Health: " & Player.Health & "%  |  "
-    StatusText = StatusText & "Cash: $" & Player.Cash & "  |  "
-    StatusText = StatusText & "Depth: " & Depth & " ft  |  "
-    StatusText = StatusText & "Ag:" & Player.Silver & " Au:" & Player.Gold & " Pt:" & Player.Platinum
-
-    lblStatus.Caption = StatusText
+    ' Simple status on bottom bar
+    lblStatus.ForeColor = vbGreen
+    lblStatus.Caption = "Depth: " & Depth & " ft  |  Press H for Help  |  E to Enter Buildings"
 End Sub
 
 ' ============================================================================
@@ -454,6 +923,8 @@ End Sub
 ' ============================================================================
 Private Sub ShowTitleScreen()
     picGame.Cls
+
+    ' Draw title in game area
     picGame.CurrentX = 200
     picGame.CurrentY = 100
     picGame.ForeColor = vbYellow
@@ -479,6 +950,9 @@ Private Sub ShowTitleScreen()
     picGame.CurrentX = 150
     picGame.CurrentY = 380
     picGame.Print "Press any key to start..."
+
+    ' Draw sidebar on title screen too
+    Call DrawSidebar
 
     picGame.Refresh
 
@@ -542,6 +1016,50 @@ Private Sub ShowWinScreen()
     tmrGame.Enabled = False
 End Sub
 
+Private Sub ShowBankruptScreen()
+    picGame.Cls
+    picGame.ForeColor = vbRed
+    picGame.FontSize = 24
+    picGame.FontBold = True
+    picGame.CurrentX = 150
+    picGame.CurrentY = 100
+    picGame.Print "BANKRUPT!"
+
+    picGame.FontSize = 14
+    picGame.FontBold = False
+    picGame.ForeColor = vbWhite
+    picGame.CurrentX = 100
+    picGame.CurrentY = 200
+    picGame.Print "You have run out of money!"
+
+    picGame.CurrentX = 100
+    picGame.CurrentY = 250
+    picGame.Print "Final balance: $" & Player.Cash
+
+    picGame.CurrentX = 100
+    picGame.CurrentY = 280
+    picGame.Print "The bank has foreclosed on your claim."
+
+    picGame.ForeColor = vbGreen
+    picGame.CurrentX = 150
+    picGame.CurrentY = 380
+    picGame.Print "Press any key to try again..."
+
+    picGame.Refresh
+End Sub
+
+Private Sub CheckWinCondition()
+    ' Check if player meets win conditions
+    ' Requires: $20,000+ AND diamond ring
+    ' Win is triggered when visiting Miss Mimi at saloon
+    ' This function just checks basic requirements
+
+    If Player.Cash >= WIN_MONEY And HasRing Then
+        ' Player has met requirements, but must visit saloon to win
+        ' The actual win trigger is in frmSaloon
+    End If
+End Sub
+
 ' ============================================================================
 ' Building Entry
 ' ============================================================================
@@ -550,6 +1068,7 @@ Private Sub EnterBuilding()
 
     ' Check if player is at a door
     If Grid(Player.X, Player.Y).CellType <> CELL_DOOR Then
+        Call AddMessage("No door here!")
         Exit Sub
     End If
 
@@ -558,17 +1077,28 @@ Private Sub EnterBuilding()
     tmrGame.Enabled = False
 
     Select Case DoorTarget
-        Case 1  ' Bank
+        Case BUILDING_OUTHOUSE
+            frmOuthouse.Show vbModal
+            Call AddMessage("Left outhouse")
+
+        Case BUILDING_BANK
             frmBank.Show vbModal
+            Call AddMessage("Left bank")
 
-        Case 2  ' Store
+        Case BUILDING_STORE
             frmStore.Show vbModal
+            Call AddMessage("Left store")
 
-        Case 3  ' Hospital
+        Case BUILDING_HOSPITAL
             frmHospital.Show vbModal
+            Call AddMessage("Left hospital")
 
-        Case 4  ' Saloon
+        Case BUILDING_SALOON
             frmSaloon.Show vbModal
+            Call AddMessage("Left saloon")
+
+        Case Else
+            Call AddMessage("Unknown building")
     End Select
 
     tmrGame.Enabled = True

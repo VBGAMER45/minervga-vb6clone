@@ -17,6 +17,7 @@ Public Const ITEM_RING As Integer = 8
 Public Const ITEM_CONDOM As Integer = 9
 Public Const ITEM_PUMP As Integer = 10
 Public Const ITEM_CLOVER As Integer = 11
+Public Const ITEM_DIAMOND As Integer = 12
 
 ' ============================================================================
 ' Item Purchase
@@ -67,6 +68,7 @@ Public Function HasItem(ByVal ItemID As Integer) As Boolean
         Case ITEM_CONDOM: HasItem = HasCondom
         Case ITEM_PUMP: HasItem = HasPump
         Case ITEM_CLOVER: HasItem = HasClover
+        Case ITEM_DIAMOND: HasItem = HasDiamond
         Case Else: HasItem = False
     End Select
 End Function
@@ -84,6 +86,7 @@ Public Function GetItemCost(ByVal ItemID As Integer) As Long
         Case ITEM_CONDOM: GetItemCost = COST_CONDOM
         Case ITEM_PUMP: GetItemCost = 0  ' Must be found
         Case ITEM_CLOVER: GetItemCost = 0  ' Must be found
+        Case ITEM_DIAMOND: GetItemCost = 0  ' Must be found
         Case Else: GetItemCost = 0
     End Select
 End Function
@@ -101,6 +104,7 @@ Public Function GetItemName(ByVal ItemID As Integer) As String
         Case ITEM_CONDOM: GetItemName = "Condom"
         Case ITEM_PUMP: GetItemName = "Pump"
         Case ITEM_CLOVER: GetItemName = "Four-Leaf Clover"
+        Case ITEM_DIAMOND: GetItemName = "Diamond"
         Case Else: GetItemName = "Unknown"
     End Select
 End Function
@@ -115,9 +119,10 @@ Public Function GetItemDescription(ByVal ItemID As Integer) As String
         Case ITEM_TORCH: GetItemDescription = "Light source, lights dynamite"
         Case ITEM_DYNAMITE: GetItemDescription = "Blasts through obstacles"
         Case ITEM_RING: GetItemDescription = "Needed to win the game"
-        Case ITEM_CONDOM: GetItemDescription = "For protection..."
+        Case ITEM_CONDOM: GetItemDescription = "Reduces digging cost"
         Case ITEM_PUMP: GetItemDescription = "Reduces water pumping cost"
         Case ITEM_CLOVER: GetItemDescription = "Improves your luck"
+        Case ITEM_DIAMOND: GetItemDescription = "Worth $1000 at the bank"
         Case Else: GetItemDescription = ""
     End Select
 End Function
@@ -142,6 +147,7 @@ Public Sub GiveItem(ByVal ItemID As Integer)
         Case ITEM_CONDOM: HasCondom = True
         Case ITEM_PUMP: HasPump = True
         Case ITEM_CLOVER: HasClover = True
+        Case ITEM_DIAMOND: HasDiamond = True
     End Select
 End Sub
 
@@ -162,6 +168,7 @@ Public Sub RemoveItem(ByVal ItemID As Integer)
         Case ITEM_CONDOM: HasCondom = False
         Case ITEM_PUMP: HasPump = False
         Case ITEM_CLOVER: HasClover = False
+        Case ITEM_DIAMOND: HasDiamond = False
     End Select
 End Sub
 
@@ -183,6 +190,7 @@ Public Function CountOwnedItems() As Integer
     If HasCondom Then Count = Count + 1
     If HasPump Then Count = Count + 1
     If HasClover Then Count = Count + 1
+    If HasDiamond Then Count = Count + 1
 
     CountOwnedItems = Count
 End Function
@@ -202,6 +210,7 @@ Public Function GetInventoryString() As String
     If HasCondom Then Items = Items & "Condom, "
     If HasPump Then Items = Items & "Pump, "
     If HasClover Then Items = Items & "Clover, "
+    If HasDiamond Then Items = Items & "Diamond, "
 
     If Len(Items) > 2 Then
         Items = Left(Items, Len(Items) - 2)  ' Remove trailing ", "
@@ -210,6 +219,35 @@ Public Function GetInventoryString() As String
     End If
 
     GetInventoryString = Items
+End Function
+
+' ============================================================================
+' Get Random Owned Item (for item loss on whirlpool)
+' ============================================================================
+Public Function GetRandomOwnedItemID() As Integer
+    Dim OwnedItems(1 To 12) As Integer
+    Dim Count As Integer
+    Dim i As Integer
+
+    Count = 0
+
+    If HasShovel Then Count = Count + 1: OwnedItems(Count) = ITEM_SHOVEL
+    If HasPickaxe Then Count = Count + 1: OwnedItems(Count) = ITEM_PICKAXE
+    If HasDrill Then Count = Count + 1: OwnedItems(Count) = ITEM_DRILL
+    If HasLantern Then Count = Count + 1: OwnedItems(Count) = ITEM_LANTERN
+    If HasBucket Then Count = Count + 1: OwnedItems(Count) = ITEM_BUCKET
+    If HasTorch Then Count = Count + 1: OwnedItems(Count) = ITEM_TORCH
+    If HasDynamite Then Count = Count + 1: OwnedItems(Count) = ITEM_DYNAMITE
+    If HasCondom Then Count = Count + 1: OwnedItems(Count) = ITEM_CONDOM
+    If HasPump Then Count = Count + 1: OwnedItems(Count) = ITEM_PUMP
+    If HasClover Then Count = Count + 1: OwnedItems(Count) = ITEM_CLOVER
+    ' Note: Ring and Diamond are not included - too valuable to lose randomly
+
+    If Count = 0 Then
+        GetRandomOwnedItemID = 0
+    Else
+        GetRandomOwnedItemID = OwnedItems(Int(Rnd * Count) + 1)
+    End If
 End Function
 
 ' ============================================================================
@@ -229,6 +267,41 @@ Public Function SellMinerals() As Long
     Player.Platinum = 0
 
     SellMinerals = Total
+End Function
+
+Public Function SellPlatinum() As Long
+    Dim Total As Long
+    Total = Player.Platinum * PLATINUM_VALUE
+    Player.Cash = Player.Cash + Total
+    Player.Platinum = 0
+    SellPlatinum = Total
+End Function
+
+Public Function SellGold() As Long
+    Dim Total As Long
+    Total = Player.Gold * GOLD_VALUE
+    Player.Cash = Player.Cash + Total
+    Player.Gold = 0
+    SellGold = Total
+End Function
+
+Public Function SellSilver() As Long
+    Dim Total As Long
+    Total = Player.Silver * SILVER_VALUE
+    Player.Cash = Player.Cash + Total
+    Player.Silver = 0
+    SellSilver = Total
+End Function
+
+Public Function SellDiamond() As Long
+    ' Sell diamond for $1000
+    If HasDiamond Then
+        HasDiamond = False
+        Player.Cash = Player.Cash + DIAMOND_VALUE
+        SellDiamond = DIAMOND_VALUE
+    Else
+        SellDiamond = 0
+    End If
 End Function
 
 Public Function GetMineralValue() As Long
@@ -278,6 +351,7 @@ Public Sub SaveGame()
     Print #FileNum, HasCondom
     Print #FileNum, HasPump
     Print #FileNum, HasClover
+    Print #FileNum, HasDiamond
 
     ' Fuel
     Print #FileNum, LanternFuel
@@ -339,6 +413,7 @@ Public Sub LoadGame()
     Input #FileNum, HasCondom
     Input #FileNum, HasPump
     Input #FileNum, HasClover
+    Input #FileNum, HasDiamond
 
     ' Fuel
     Input #FileNum, LanternFuel

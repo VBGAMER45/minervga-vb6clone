@@ -50,6 +50,8 @@ Private Const HEAL_NIGHT As Integer = 15   ' Health from night's rest
 
 Private picTileset As StdPicture
 Private Rumors(1 To 10) As String
+Private CurrentMessage As String
+Private MessageColor As Long
 
 Private Sub Form_Load()
     ' Load tileset for icons
@@ -57,8 +59,10 @@ Private Sub Form_Load()
     Set picTileset = LoadPicture(App.Path & "\tileset.bmp")
     On Error GoTo 0
 
-    ' Initialize rumors
+    ' Initialize rumors and message
     Call InitRumors
+    CurrentMessage = ""
+    MessageColor = vbWhite
 
     Call DrawSaloonInterface
 End Sub
@@ -176,7 +180,18 @@ Private Sub DrawSaloonInterface()
     picSaloon.CurrentX = 60
     picSaloon.CurrentY = Y
     picSaloon.Print "press C to purchase a condom."
-    Y = Y + 35
+    Y = Y + 30
+
+    ' Message display area (right after menu options)
+    If CurrentMessage <> "" Then
+        picSaloon.ForeColor = MessageColor
+        picSaloon.FontBold = True
+        picSaloon.CurrentX = 60
+        picSaloon.CurrentY = Y
+        picSaloon.Print ">> " & CurrentMessage
+        picSaloon.FontBold = False
+    End If
+    Y = Y + 25
 
     ' Cash display
     picSaloon.ForeColor = vbGreen
@@ -259,12 +274,15 @@ Private Sub VisitMimi()
     Else
         ' Not enough yet
         If Player.Cash < WIN_MONEY And Not HasRing Then
+            Call SetLocalMessage("Mimi says: Need $" & Format(WIN_MONEY, "#,##0") & " AND a ring!", vbYellow)
             Call AddMessage("Need $" & Format(WIN_MONEY, "#,##0") & " + ring!")
         ElseIf Player.Cash < WIN_MONEY Then
             Dim Needed As Long
             Needed = WIN_MONEY - Player.Cash
+            Call SetLocalMessage("Mimi says: Need $" & Format(Needed, "#,##0") & " more, sweetie!", vbYellow)
             Call AddMessage("Need $" & Format(Needed, "#,##0") & " more!")
         Else
+            Call SetLocalMessage("Mimi says: Where's my diamond ring?!", vbYellow)
             Call AddMessage("Need a ring!")
         End If
         Call DrawSaloonInterface
@@ -273,12 +291,14 @@ End Sub
 
 Private Sub HaveBrew()
     If Player.Cash < COST_BREW Then
+        Call SetLocalMessage("Not enough cash for a brew!", vbRed)
         Call AddMessage("Need $" & COST_BREW)
         Call DrawSaloonInterface
         Exit Sub
     End If
 
     Player.Cash = Player.Cash - COST_BREW
+    Call SetLocalMessage("*BURP!* That hit the spot!", vbGreen)
     Call AddMessage("Burp!")
     Call PlayPurchaseSound
     Call DrawSaloonInterface
@@ -286,6 +306,7 @@ End Sub
 
 Private Sub SpendNight()
     If Player.Cash < COST_NIGHT Then
+        Call SetLocalMessage("Not enough cash for a night!", vbRed)
         Call AddMessage("Need $" & COST_NIGHT)
         Call DrawSaloonInterface
         Exit Sub
@@ -296,8 +317,10 @@ Private Sub SpendNight()
     ' Heal player
     If Player.Health < 100 Then
         Call HealPlayer(HEAL_NIGHT)
+        Call SetLocalMessage("What a night! You feel rested. (+" & HEAL_NIGHT & " HP)", vbGreen)
         Call AddMessage("Rested +" & HEAL_NIGHT & " HP")
     Else
+        Call SetLocalMessage("What a night to remember!", vbGreen)
         Call AddMessage("What a night!")
     End If
 
@@ -307,6 +330,7 @@ End Sub
 
 Private Sub HaveMeal()
     If Player.Cash < COST_MEAL Then
+        Call SetLocalMessage("Not enough cash for a meal!", vbRed)
         Call AddMessage("Need $" & COST_MEAL)
         Call DrawSaloonInterface
         Exit Sub
@@ -317,8 +341,10 @@ Private Sub HaveMeal()
     ' Heal player
     If Player.Health < 100 Then
         Call HealPlayer(HEAL_MEAL)
+        Call SetLocalMessage("Delicious! That was filling. (+" & HEAL_MEAL & " HP)", vbGreen)
         Call AddMessage("Ate +" & HEAL_MEAL & " HP")
     Else
+        Call SetLocalMessage("Delicious meal! You're stuffed!", vbGreen)
         Call AddMessage("Delicious!")
     End If
 
@@ -328,12 +354,14 @@ End Sub
 
 Private Sub BuyCondom()
     If HasCondom Then
+        Call SetLocalMessage("You already have a condom!", vbYellow)
         Call AddMessage("Already have one!")
         Call DrawSaloonInterface
         Exit Sub
     End If
 
     If Player.Cash < COST_CONDOM_SALOON Then
+        Call SetLocalMessage("Not enough cash for a condom!", vbRed)
         Call AddMessage("Need $" & COST_CONDOM_SALOON)
         Call DrawSaloonInterface
         Exit Sub
@@ -341,6 +369,7 @@ Private Sub BuyCondom()
 
     Player.Cash = Player.Cash - COST_CONDOM_SALOON
     Call GiveItem(ITEM_CONDOM)
+    Call SetLocalMessage("Condom purchased! Stay safe out there!", vbGreen)
     Call AddMessage("Purchased!")
     Call PlayPurchaseSound
     Call DrawSaloonInterface
@@ -348,4 +377,9 @@ End Sub
 
 Private Sub picSaloon_Click()
     ' Optional click handling
+End Sub
+
+Private Sub SetLocalMessage(ByVal Msg As String, ByVal MsgColor As Long)
+    CurrentMessage = Msg
+    MessageColor = MsgColor
 End Sub

@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmBank
+Begin VB.Form frmBank 
    BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "The Community Bank"
@@ -16,7 +16,7 @@ Begin VB.Form frmBank
    ScaleWidth      =   512
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.PictureBox picBank
+   Begin VB.PictureBox picBank 
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
       Height          =   6135
@@ -37,7 +37,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' ============================================================================
-' MinerVGA - Bank Form (Graphical Interface matching JS version)
+' MinerVGA - Bank Form (Graphical Interface)
 ' ============================================================================
 
 Private picTileset As StdPicture

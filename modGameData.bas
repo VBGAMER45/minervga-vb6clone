@@ -39,11 +39,18 @@ Public Const MOD_SPRING As Integer = 11
 Public Const MOD_VOLCANIC As Integer = 12
 Public Const MOD_SANDSTONE As Integer = 13
 
-' --- Mineral Values (at Bank) ---
-Public Const SILVER_VALUE As Long = 16
-Public Const GOLD_VALUE As Long = 60
-Public Const PLATINUM_VALUE As Long = 2000
-Public Const DIAMOND_VALUE As Long = 1000
+' --- Base Mineral Values (at Bank) ---
+Public Const BASE_SILVER_VALUE As Long = 16
+Public Const BASE_GOLD_VALUE As Long = 60
+Public Const BASE_PLATINUM_VALUE As Long = 2000
+Public Const DIAMOND_VALUE As Long = 1000  ' Diamond price is fixed
+
+' --- Current Mineral Prices (fluctuate 1-50% up or down) ---
+Public CurrentSilverPrice As Single
+Public CurrentGoldPrice As Single
+Public CurrentPlatinumPrice As Single
+Public LastPriceUpdate As Double  ' Timer value of last price update
+Public Const PRICE_UPDATE_INTERVAL As Long = 30  ' Seconds between price changes
 
 ' --- Item Costs (at Store) ---
 Public Const COST_SHOVEL As Long = 100
@@ -266,3 +273,64 @@ Public Sub ClearMessages()
     Next i
     MessageCount = 0
 End Sub
+
+' ============================================================================
+' Mineral Price System (prices fluctuate every 30 seconds)
+' ============================================================================
+Public Sub InitializePrices()
+    ' Set initial prices to base values
+    CurrentSilverPrice = BASE_SILVER_VALUE
+    CurrentGoldPrice = BASE_GOLD_VALUE
+    CurrentPlatinumPrice = BASE_PLATINUM_VALUE
+    LastPriceUpdate = Timer
+
+    ' Randomize prices immediately
+    Call UpdateMineralPrices
+End Sub
+
+Public Sub UpdateMineralPrices()
+    ' Called when entering bank - updates prices if 30 seconds have passed
+    Dim CurrentTime As Double
+    Dim ElapsedTime As Double
+
+    CurrentTime = Timer
+
+    ' Handle midnight rollover
+    If CurrentTime < LastPriceUpdate Then
+        ElapsedTime = (86400 - LastPriceUpdate) + CurrentTime
+    Else
+        ElapsedTime = CurrentTime - LastPriceUpdate
+    End If
+
+    ' Only update if enough time has passed
+    If ElapsedTime >= PRICE_UPDATE_INTERVAL Then
+        ' Randomize each price: 50% to 150% of base value (1-50% up or down)
+        CurrentSilverPrice = RandomizePrice(BASE_SILVER_VALUE)
+        CurrentGoldPrice = RandomizePrice(BASE_GOLD_VALUE)
+        CurrentPlatinumPrice = RandomizePrice(BASE_PLATINUM_VALUE)
+
+        LastPriceUpdate = CurrentTime
+    End If
+End Sub
+
+Private Function RandomizePrice(ByVal BasePrice As Long) As Single
+    ' Returns a price between 50% and 150% of base (1-50% change up or down)
+    Dim Multiplier As Single
+
+    ' Generate random multiplier between 0.50 and 1.50
+    Multiplier = 0.5 + (Rnd * 1#)
+
+    RandomizePrice = BasePrice * Multiplier
+End Function
+
+Public Function GetSilverPrice() As Single
+    GetSilverPrice = CurrentSilverPrice
+End Function
+
+Public Function GetGoldPrice() As Single
+    GetGoldPrice = CurrentGoldPrice
+End Function
+
+Public Function GetPlatinumPrice() As Single
+    GetPlatinumPrice = CurrentPlatinumPrice
+End Function

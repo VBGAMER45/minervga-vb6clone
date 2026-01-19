@@ -45,8 +45,11 @@ Private picTileset As StdPicture
 Private Sub Form_Load()
     ' Load tileset for mineral icons
     On Error Resume Next
-    Set picTileset = LoadPicture(App.Path & "\javascript\tileset.bmp")
+    Set picTileset = LoadPicture(App.Path & "\tileset.bmp")
     On Error GoTo 0
+
+    ' Update mineral prices (changes every 30 seconds)
+    Call UpdateMineralPrices
 
     Call DrawBankInterface
 End Sub
@@ -112,80 +115,107 @@ Private Sub DrawBankInterface()
     picBank.Print "Press X to Leave the Bank"
     Y = Y + 30
 
-    ' Today's Quotes header and values
+    ' Calculate values using current market prices
+    PlatTotal = CLng(Player.Platinum * CurrentPlatinumPrice)
+    GoldTotal = CLng(Player.Gold * CurrentGoldPrice)
+    SilverTotal = CLng(Player.Silver * CurrentSilverPrice)
+
+    ' Grid layout for quotes and minerals
+    Dim ColLabel As Integer, ColPlat As Integer, ColGold As Integer, ColSilver As Integer
+    ColLabel = 20
+    ColPlat = 180
+    ColGold = 280
+    ColSilver = 380
+
+    ' Today's Quotes label
+    picBank.ForeColor = vbWhite
+    picBank.FontBold = True
+    picBank.CurrentX = ColLabel
+    picBank.CurrentY = Y
+    picBank.Print "Today's Quotes:"
+
+    ' Column headers with mineral icons
+    Call DrawMineralIcon(ColPlat, Y - 2, SPR_PLATINUM)
+    picBank.ForeColor = COLOR_PLATINUM
+    picBank.CurrentX = ColPlat + 20
+    picBank.CurrentY = Y
+    picBank.Print "Platinum"
+
+    Call DrawMineralIcon(ColGold, Y - 2, SPR_GOLD)
+    picBank.ForeColor = COLOR_GOLD
+    picBank.CurrentX = ColGold + 20
+    picBank.CurrentY = Y
+    picBank.Print "Gold"
+
+    Call DrawMineralIcon(ColSilver, Y - 2, SPR_SILVER)
+    picBank.ForeColor = COLOR_SILVER
+    picBank.CurrentX = ColSilver + 20
+    picBank.CurrentY = Y
+    picBank.Print "Silver"
+    Y = Y + 22
+
+    ' Row 1: Price per oz (current market prices) with trend indicator
     picBank.ForeColor = vbWhite
     picBank.FontBold = False
-    picBank.CurrentX = 20
+    picBank.CurrentX = ColLabel
     picBank.CurrentY = Y
-    picBank.Print "Today's Quotes: "
-    picBank.ForeColor = COLOR_PLATINUM
-    picBank.Print "Platinum "
-    picBank.ForeColor = vbWhite
-    picBank.Print Format(PLATINUM_VALUE, "0")
-    picBank.ForeColor = vbWhite
-    picBank.Print " : "
-    picBank.ForeColor = COLOR_GOLD
-    picBank.Print "Gold "
-    picBank.ForeColor = vbWhite
-    picBank.Print Format(GOLD_VALUE, "0")
-    picBank.ForeColor = vbWhite
-    picBank.Print " : "
-    picBank.ForeColor = COLOR_SILVER
-    picBank.Print "Silver "
-    picBank.ForeColor = vbWhite
-    picBank.Print Format(SILVER_VALUE, "0.0")
+    picBank.Print "Price/oz:"
+
+    ' Platinum price with trend
+    Call DrawPriceWithTrend(ColPlat + 20, Y, CurrentPlatinumPrice, BASE_PLATINUM_VALUE, "#,##0")
+
+    ' Gold price with trend
+    Call DrawPriceWithTrend(ColGold + 20, Y, CurrentGoldPrice, BASE_GOLD_VALUE, "0")
+
+    ' Silver price with trend
+    Call DrawPriceWithTrend(ColSilver + 20, Y, CurrentSilverPrice, BASE_SILVER_VALUE, "0.0")
     Y = Y + 18
 
-    ' Your Mineral Oz
+    ' Row 2: Your oz
     picBank.ForeColor = vbWhite
-    picBank.CurrentX = 20
+    picBank.CurrentX = ColLabel
     picBank.CurrentY = Y
-    picBank.Print "Your Mineral Oz "
+    picBank.Print "Your oz:"
     picBank.ForeColor = COLOR_PLATINUM
-    picBank.Print "Platinum "
-    picBank.ForeColor = vbWhite
+    picBank.CurrentX = ColPlat + 20
+    picBank.CurrentY = Y
     picBank.Print Format(Player.Platinum, "0")
-    picBank.ForeColor = vbWhite
-    picBank.Print " : "
     picBank.ForeColor = COLOR_GOLD
-    picBank.Print "Gold "
-    picBank.ForeColor = vbWhite
+    picBank.CurrentX = ColGold + 20
+    picBank.CurrentY = Y
     picBank.Print Format(Player.Gold, "0")
-    picBank.ForeColor = vbWhite
-    picBank.Print " : "
     picBank.ForeColor = COLOR_SILVER
-    picBank.Print "Silver "
-    picBank.ForeColor = vbWhite
+    picBank.CurrentX = ColSilver + 20
+    picBank.CurrentY = Y
     picBank.Print Format(Player.Silver, "0")
     Y = Y + 18
 
-    ' Calculate values
-    PlatTotal = Player.Platinum * PLATINUM_VALUE
-    GoldTotal = Player.Gold * GOLD_VALUE
-    SilverTotal = Player.Silver * SILVER_VALUE
-
-    ' Your Minerals $
+    ' Row 3: Your value $
     picBank.ForeColor = vbWhite
-    picBank.CurrentX = 20
+    picBank.CurrentX = ColLabel
     picBank.CurrentY = Y
-    picBank.Print "Your Minerals $ "
+    picBank.Print "Value $:"
     picBank.ForeColor = COLOR_PLATINUM
-    picBank.Print "Platinum "
-    picBank.ForeColor = vbWhite
-    picBank.Print Format(PlatTotal, "0")
-    picBank.ForeColor = vbWhite
-    picBank.Print " : "
+    picBank.CurrentX = ColPlat + 20
+    picBank.CurrentY = Y
+    picBank.Print "$" & Format(PlatTotal, "0")
     picBank.ForeColor = COLOR_GOLD
-    picBank.Print "Gold "
-    picBank.ForeColor = vbWhite
-    picBank.Print Format(GoldTotal, "0")
-    picBank.ForeColor = vbWhite
-    picBank.Print " : "
+    picBank.CurrentX = ColGold + 20
+    picBank.CurrentY = Y
+    picBank.Print "$" & Format(GoldTotal, "0")
     picBank.ForeColor = COLOR_SILVER
-    picBank.Print "Silver "
-    picBank.ForeColor = vbWhite
-    picBank.Print Format(SilverTotal, "0.0")
-    Y = Y + 40
+    picBank.CurrentX = ColSilver + 20
+    picBank.CurrentY = Y
+    picBank.Print "$" & Format(SilverTotal, "0")
+    Y = Y + 30
+
+    ' Total value
+    picBank.ForeColor = vbGreen
+    picBank.FontBold = True
+    picBank.CurrentX = ColLabel
+    picBank.CurrentY = Y
+    picBank.Print "Total Mineral Value: $" & Format(PlatTotal + GoldTotal + SilverTotal, "#,##0")
+    Y = Y + 30
 
     ' Options
     picBank.ForeColor = vbGreen
@@ -229,6 +259,35 @@ Private Sub DrawMineralIcon(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite
 
     picBank.PaintPicture picTileset, X, Y, CELL_WIDTH, CELL_HEIGHT, _
                          SrcX, SrcY, CELL_WIDTH, CELL_HEIGHT
+End Sub
+
+Private Sub DrawPriceWithTrend(ByVal X As Integer, ByVal Y As Integer, _
+                               ByVal CurrentPrice As Single, ByVal BasePrice As Long, _
+                               ByVal FormatStr As String)
+    Dim PctChange As Single
+    Dim TrendSymbol As String
+    Dim TrendColor As Long
+
+    ' Calculate percentage change from base
+    PctChange = ((CurrentPrice - BasePrice) / BasePrice) * 100
+
+    ' Determine trend symbol and color
+    If PctChange >= 5 Then
+        TrendSymbol = "+"
+        TrendColor = vbGreen  ' Green for up
+    ElseIf PctChange <= -5 Then
+        TrendSymbol = "-"
+        TrendColor = vbRed    ' Red for down
+    Else
+        TrendSymbol = "~"
+        TrendColor = vbYellow ' Yellow for stable
+    End If
+
+    ' Draw price
+    picBank.ForeColor = TrendColor
+    picBank.CurrentX = X
+    picBank.CurrentY = Y
+    picBank.Print "$" & Format(CurrentPrice, FormatStr) & TrendSymbol
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)

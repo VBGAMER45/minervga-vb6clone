@@ -145,6 +145,7 @@ Private Sub Form_Load()
     Call InitPlayer
     Call InitializeGrid
     Call ClearMessages
+    Call InitializePrices  ' Initialize mineral market prices
 
     ' Set game state
     GameState = STATE_TITLE

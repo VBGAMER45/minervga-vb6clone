@@ -259,15 +259,16 @@ Public Function GetRandomOwnedItemID() As Integer
 End Function
 
 ' ============================================================================
-' Bank Operations
+' Bank Operations (uses current market prices)
 ' ============================================================================
 Public Function SellMinerals() As Long
     Dim Total As Long
     Total = 0
 
-    Total = Total + (Player.Silver * SILVER_VALUE)
-    Total = Total + (Player.Gold * GOLD_VALUE)
-    Total = Total + (Player.Platinum * PLATINUM_VALUE)
+    ' Use current market prices
+    Total = Total + CLng(Player.Silver * CurrentSilverPrice)
+    Total = Total + CLng(Player.Gold * CurrentGoldPrice)
+    Total = Total + CLng(Player.Platinum * CurrentPlatinumPrice)
 
     Player.Cash = Player.Cash + Total
     Player.Silver = 0
@@ -279,7 +280,7 @@ End Function
 
 Public Function SellPlatinum() As Long
     Dim Total As Long
-    Total = Player.Platinum * PLATINUM_VALUE
+    Total = CLng(Player.Platinum * CurrentPlatinumPrice)
     Player.Cash = Player.Cash + Total
     Player.Platinum = 0
     SellPlatinum = Total
@@ -287,7 +288,7 @@ End Function
 
 Public Function SellGold() As Long
     Dim Total As Long
-    Total = Player.Gold * GOLD_VALUE
+    Total = CLng(Player.Gold * CurrentGoldPrice)
     Player.Cash = Player.Cash + Total
     Player.Gold = 0
     SellGold = Total
@@ -295,14 +296,14 @@ End Function
 
 Public Function SellSilver() As Long
     Dim Total As Long
-    Total = Player.Silver * SILVER_VALUE
+    Total = CLng(Player.Silver * CurrentSilverPrice)
     Player.Cash = Player.Cash + Total
     Player.Silver = 0
     SellSilver = Total
 End Function
 
 Public Function SellDiamond() As Long
-    ' Sell diamond for $1000
+    ' Sell diamond for $1000 (fixed price)
     If HasDiamond Then
         HasDiamond = False
         Player.Cash = Player.Cash + DIAMOND_VALUE
@@ -316,9 +317,10 @@ Public Function GetMineralValue() As Long
     Dim Total As Long
     Total = 0
 
-    Total = Total + (Player.Silver * SILVER_VALUE)
-    Total = Total + (Player.Gold * GOLD_VALUE)
-    Total = Total + (Player.Platinum * PLATINUM_VALUE)
+    ' Use current market prices
+    Total = Total + CLng(Player.Silver * CurrentSilverPrice)
+    Total = Total + CLng(Player.Gold * CurrentGoldPrice)
+    Total = Total + CLng(Player.Platinum * CurrentPlatinumPrice)
 
     GetMineralValue = Total
 End Function

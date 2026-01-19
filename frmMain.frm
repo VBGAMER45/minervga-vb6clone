@@ -628,31 +628,29 @@ Private Sub DrawCell(ByVal ScreenX As Integer, ByVal ScreenY As Integer, _
 End Sub
 
 Private Sub DrawModifierHint(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal Modifier As Integer)
-    ' Draw a small colored dot to indicate hidden modifier
-    Dim HintColor As Long
-    Dim CenterX As Integer, CenterY As Integer
+    ' Draw sprite to show hidden modifier (using spritesheet images)
+    Dim SpriteIdx As Integer
 
-    CenterX = ScreenX + CELL_WIDTH \ 2
-    CenterY = ScreenY + CELL_HEIGHT \ 2
-
+    ' Map modifier to sprite index from spritesheet
     Select Case Modifier
-        Case MOD_SILVER: HintColor = COLOR_SILVER
-        Case MOD_GOLD: HintColor = COLOR_GOLD
-        Case MOD_PLATINUM: HintColor = COLOR_PLATINUM
-        Case MOD_CAVEIN: HintColor = &HFF&         ' Red warning
-        Case MOD_WATER: HintColor = COLOR_WATER
-        Case MOD_WHIRLPOOL: HintColor = &HFF8000   ' Orange
-        Case MOD_GRANITE: HintColor = COLOR_ROCK
-        Case MOD_DIAMOND: HintColor = &HFFFF00     ' Cyan for diamond
-        Case MOD_PUMP: HintColor = &HFF00&         ' Green for pump
-        Case MOD_CLOVER: HintColor = &HFF00&       ' Green for clover
-        Case MOD_SPRING: HintColor = &HFFFF80      ' Light blue for spring
-        Case MOD_VOLCANIC: HintColor = COLOR_VOLCANIC
-        Case MOD_SANDSTONE: HintColor = COLOR_SANDSTONE
+        Case MOD_SILVER: SpriteIdx = SPR_SILVER         ' Row 5, Col 4
+        Case MOD_GOLD: SpriteIdx = SPR_GOLD             ' Row 5, Col 5
+        Case MOD_PLATINUM: SpriteIdx = SPR_PLATINUM     ' Row 5, Col 6
+        Case MOD_CAVEIN: SpriteIdx = SPR_CAVEIN         ' Row 5, Col 7
+        Case MOD_WATER: SpriteIdx = SPR_WATER           ' Row 5, Col 3
+        Case MOD_WHIRLPOOL: SpriteIdx = SPR_WATER       ' Row 5, Col 2 (use water sprite)
+        Case MOD_GRANITE: SpriteIdx = SPR_GRANITE       ' Row 2, Col 5
+        Case MOD_DIAMOND: SpriteIdx = SPR_DIAMOND       ' Row 6, Col 2
+        Case MOD_PUMP: SpriteIdx = SPR_PUMP             ' Row 6, Col 2
+        Case MOD_CLOVER: SpriteIdx = SPR_CLOVER         ' Row 1, Col 3
+        Case MOD_SPRING: SpriteIdx = SPR_SPRING         ' Row 5, Col 2
+        Case MOD_VOLCANIC: SpriteIdx = SPR_VOLCANIC     ' Row 6, Col 1
+        Case MOD_SANDSTONE: SpriteIdx = SPR_SANDSTONE   ' Row 5, Col 8
         Case Else: Exit Sub
     End Select
 
-    picGame.Circle (CenterX, CenterY), 3, HintColor
+    ' Draw the sprite at the cell position
+    Call DrawSprite(SpriteIdx, ScreenX, ScreenY)
 End Sub
 
 Private Sub DrawPlayer()
@@ -827,81 +825,138 @@ End Sub
 
 Private Sub DrawSidebarInventory(ByVal SX As Integer, ByVal StartY As Integer)
     Dim X As Integer, Y As Integer
+    Dim ItemCount As Integer
+    Const ITEMS_PER_ROW As Integer = 5
 
     X = SX + 5
     Y = StartY
+    ItemCount = 0
 
-    ' Draw item icons for owned items
+    ' Draw item icons for owned items in grid (5 per row)
     If HasShovel Then
         Call DrawSprite(SPR_SHOVEL, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasPickaxe Then
         Call DrawSprite(SPR_PICKAXE, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasDrill Then
         Call DrawSprite(SPR_DRILL, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasLantern Then
         Call DrawSprite(SPR_LAMP, X, Y)
-        X = X + CELL_WIDTH + 2
-    End If
-
-    ' Move to next row if needed
-    If X > SX + SIDEBAR_WIDTH - CELL_WIDTH Then
-        X = SX + 5
-        Y = Y + CELL_HEIGHT + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasBucket Then
         Call DrawSprite(SPR_BUCKET, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasTorch Then
         Call DrawSprite(SPR_TORCH, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasDynamite Then
         Call DrawSprite(SPR_DYNAMITE, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasRing Then
         Call DrawSprite(SPR_RING, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasCondom Then
         Call DrawSprite(SPR_CONDOM, X, Y)
-        X = X + CELL_WIDTH + 2
-    End If
-
-    ' Move to next row if needed
-    If X > SX + SIDEBAR_WIDTH - CELL_WIDTH Then
-        X = SX + 5
-        Y = Y + CELL_HEIGHT + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasPump Then
         Call DrawSprite(SPR_PUMP, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasClover Then
         Call DrawSprite(SPR_CLOVER, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
+        If ItemCount Mod ITEMS_PER_ROW = 0 Then
+            X = SX + 5
+            Y = Y + CELL_HEIGHT + 2
+        Else
+            X = X + CELL_WIDTH + 2
+        End If
     End If
 
     If HasDiamond Then
         Call DrawSprite(SPR_DIAMOND, X, Y)
-        X = X + CELL_WIDTH + 2
+        ItemCount = ItemCount + 1
     End If
 End Sub
 

@@ -107,12 +107,18 @@ Private Sub DrawStoreInterface()
     ' Draw item list with icons
     Call DrawItemList(Y)
 
-    ' Status at bottom
-    Y = 370
+    ' Your Cash - middle right of screen
     picStore.ForeColor = vbGreen
-    picStore.CurrentX = 20
-    picStore.CurrentY = Y
-    picStore.Print "Your Cash: $" & Format(Player.Cash, "#,##0")
+    picStore.FontSize = 10
+    picStore.FontBold = True
+    picStore.CurrentX = 320
+    picStore.CurrentY = 200
+    picStore.Print "Your Cash:"
+    picStore.CurrentX = 320
+    picStore.CurrentY = 220
+    picStore.Print "$" & Format(Player.Cash, "#,##0")
+    picStore.FontSize = 8
+    picStore.FontBold = False
 
     picStore.Refresh
 End Sub

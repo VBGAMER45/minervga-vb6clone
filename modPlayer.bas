@@ -38,6 +38,12 @@ Public HasDiamond As Boolean
 Public LanternFuel As Integer
 Public TorchFuel As Integer
 
+' --- Item Durability ---
+Public BucketUses As Integer   ' Bucket lasts 20 uses
+Public DrillUses As Integer    ' Drill lasts 5 uses
+Public Const MAX_BUCKET_USES As Integer = 20
+Public Const MAX_DRILL_USES As Integer = 5
+
 ' --- Luck System ---
 Public PlayerLuck As Integer  ' Base luck value (clover adds +20)
 
@@ -75,9 +81,11 @@ Public Sub InitPlayer()
     HasClover = False
     HasDiamond = False
 
-    ' Reset fuel and luck
+    ' Reset fuel, durability, and luck
     LanternFuel = 0
     TorchFuel = 0
+    BucketUses = 0
+    DrillUses = 0
     PlayerLuck = 0
 
     ' Elevator starts at top with limited depth
@@ -136,13 +144,68 @@ Public Function MovePlayer(ByVal Direction As Integer) As Boolean
     If CanEnterCell(NewX, NewY) Then
         ' Handle entering the cell (may trigger events)
         Call EnterCell(NewX, NewY)
-        Player.X = NewX
-        Player.Y = NewY
-        MovePlayer = True
+
+        ' Only move player if cell didn't become a blocking hazard
+        ' (e.g., digging into water/granite/cavein/whirlpool/spring modifier)
+        If CanEnterCell(NewX, NewY) Then
+            Player.X = NewX
+            Player.Y = NewY
+            MovePlayer = True
+        Else
+            ' Cell became blocking after digging (hazard revealed)
+            MovePlayer = False
+        End If
     Else
+        ' Check for hazards that deal damage on bump
+        Call HandleBumpDamage(NewX, NewY)
         MovePlayer = False
     End If
 End Function
+
+' ============================================================================
+' Bump Damage (when blocked by hazards)
+' ============================================================================
+Private Sub HandleBumpDamage(ByVal X As Integer, ByVal Y As Integer)
+    Dim CellType As Integer
+
+    ' Check bounds
+    If X < 0 Or X >= GRID_COLS Or Y < 0 Or Y >= GRID_ROWS Then
+        Exit Sub
+    End If
+
+    CellType = Grid(X, Y).CellType
+
+    Select Case CellType
+        Case CELL_WATER
+            Call PlayWaterSplash
+            Call InjurePlayer(DAMAGE_WATER)
+            Call AddMessage("Water! -" & DAMAGE_WATER & " HP")
+
+        Case CELL_WHIRLPOOL
+            Call PlaySpringSound
+            Call InjurePlayer(DAMAGE_WHIRLPOOL)
+            Call FloodNearby(X, Y)
+            Call LoseRandomItem
+            Call AddMessage("Whirlpool! -" & DAMAGE_WHIRLPOOL & " HP")
+
+        Case CELL_CAVE
+            Call PlayCaveInSound
+            Call InjurePlayer(DAMAGE_CAVEIN)
+            Call LoseRandomItem
+            Call AddMessage("Cave-in! -" & DAMAGE_CAVEIN & " HP")
+
+        Case CELL_GRANITE
+            ' No damage, just blocked
+            Call AddMessage("Need drill!")
+
+        Case CELL_SPRING
+            Call PlaySpringSound
+            Call InjurePlayer(DAMAGE_SPRING)
+            Call FloodNearby(X, Y)
+            Call LoseRandomItem
+            Call AddMessage("Spring! -" & DAMAGE_SPRING & " HP")
+    End Select
+End Sub
 
 ' ============================================================================
 ' Cell Entry Logic
@@ -185,20 +248,24 @@ Public Function CanEnterCell(ByVal X As Integer, ByVal Y As Integer) As Boolean
             CanEnterCell = False
 
         Case CELL_WATER
-            ' Can enter water (takes damage)
-            CanEnterCell = True
+            ' Cannot enter water - must pump with bucket using P key
+            CanEnterCell = False
 
         Case CELL_GRANITE
-            ' Cannot enter granite without drilling
+            ' Cannot enter granite - must drill with D key
             CanEnterCell = False
 
         Case CELL_CAVE
-            ' Can enter cave-in area
-            CanEnterCell = True
+            ' Cannot enter cave-in - must use dynamite
+            CanEnterCell = False
 
         Case CELL_WHIRLPOOL
-            ' Can enter whirlpool (takes damage)
-            CanEnterCell = True
+            ' Cannot enter whirlpool - must use dynamite
+            CanEnterCell = False
+
+        Case CELL_SPRING
+            ' Cannot enter spring - must use dynamite
+            CanEnterCell = False
 
         Case Else
             CanEnterCell = False
@@ -225,9 +292,12 @@ Public Sub EnterCell(ByVal X As Integer, ByVal Y As Integer)
             ' Check for modifiers (minerals/hazards)
             Call HandleModifier(X, Y, Modifier)
 
-            ' Mark as dug
-            Grid(X, Y).CellType = CELL_DUG
-            Grid(X, Y).Dug = True
+            ' Mark as dug ONLY if HandleModifier didn't convert to a blocking cell
+            ' (hazards like water, granite, cave-in, whirlpool, spring stay as blocking cells)
+            If Grid(X, Y).CellType = CELL_DIRT Then
+                Grid(X, Y).CellType = CELL_DUG
+                Grid(X, Y).Dug = True
+            End If
 
             ' Use up light source fuel
             Call UseLightFuel
@@ -307,6 +377,7 @@ Private Sub HandleModifier(ByVal X As Integer, ByVal Y As Integer, ByVal Modifie
         Case MOD_CAVEIN
             Call InjurePlayer(DAMAGE_CAVEIN)
             Call TriggerCaveIn(X, Y)
+            Call LoseRandomItem  ' Chance to lose item on cave-in
             Grid(X, Y).CellType = CELL_CAVE
 
         Case MOD_WATER
@@ -317,13 +388,54 @@ Private Sub HandleModifier(ByVal X As Integer, ByVal Y As Integer, ByVal Modifie
             Grid(X, Y).CellType = CELL_WHIRLPOOL
             Call InjurePlayer(DAMAGE_WHIRLPOOL)
             Call FloodNearby(X, Y)
+            Call LoseRandomItem  ' Chance to lose item on whirlpool
 
         Case MOD_GRANITE
-            ' Granite blocks entry - this shouldn't happen
-            ' as CanEnterCell should have blocked it
+            ' Granite blocks entry - convert to blocking cell
             Grid(X, Y).CellType = CELL_GRANITE
+
+        Case MOD_SPRING
+            ' Spring floods area and damages player
+            Grid(X, Y).CellType = CELL_SPRING
+            Call InjurePlayer(DAMAGE_SPRING)
+            Call FloodNearby(X, Y)
+            Call LoseRandomItem  ' Chance to lose item on spring
     End Select
 End Sub
+
+' ============================================================================
+' Random Item Loss (for hazards like whirlpool and cave-in)
+' ============================================================================
+Public Function LoseRandomItem() As Boolean
+    ' 50% chance to lose a random item from inventory
+    Dim ItemLost As Integer
+    Dim ItemName As String
+
+    If Rnd > 0.5 Then
+        LoseRandomItem = False
+        Exit Function
+    End If
+
+    ' Get a random owned item (uses function from modInventory)
+    ItemLost = GetRandomOwnedItemID()
+
+    If ItemLost = 0 Then
+        ' No items to lose
+        LoseRandomItem = False
+        Exit Function
+    End If
+
+    ' Get the item name before removing
+    ItemName = GetItemName(ItemLost)
+
+    ' Remove the item
+    Call RemoveItem(ItemLost)
+
+    ' Notify player
+    Call AddMessage("Lost " & ItemName & "!")
+
+    LoseRandomItem = True
+End Function
 
 ' ============================================================================
 ' Digging Cost Calculation
@@ -411,20 +523,53 @@ Private Sub TriggerCaveIn(ByVal CenterX As Integer, ByVal CenterY As Integer)
 End Sub
 
 Private Sub FloodNearby(ByVal CenterX As Integer, ByVal CenterY As Integer)
-    ' Whirlpool floods nearby dug cells with water
+    ' Whirlpool floods 3-15 random nearby dug cells with water
     Dim X As Integer, Y As Integer
+    Dim DugCells(0 To 99, 0 To 1) As Integer  ' Store coordinates of DUG cells
+    Dim DugCount As Integer
+    Dim FloodCount As Integer
+    Dim TargetFlood As Integer
+    Dim i As Integer, j As Integer
+    Dim TempX As Integer, TempY As Integer
 
-    For Y = CenterY To CenterY + 4
-        For X = CenterX - 2 To CenterX + 2
+    ' First, find all CELL_DUG within range (5x5 area around whirlpool)
+    DugCount = 0
+    For Y = CenterY - 2 To CenterY + 4
+        For X = CenterX - 3 To CenterX + 3
             If X >= 0 And X < GRID_COLS And Y >= 0 And Y < GRID_ROWS Then
                 If Grid(X, Y).CellType = CELL_DUG Then
                     If Not (X = Player.X And Y = Player.Y) Then
-                        Grid(X, Y).CellType = CELL_WATER
+                        If DugCount < 100 Then
+                            DugCells(DugCount, 0) = X
+                            DugCells(DugCount, 1) = Y
+                            DugCount = DugCount + 1
+                        End If
                     End If
                 End If
             End If
         Next X
     Next Y
+
+    ' Determine how many to flood (3-15, but not more than available)
+    TargetFlood = Int(Rnd * 13) + 3  ' Random 3-15
+    If TargetFlood > DugCount Then TargetFlood = DugCount
+
+    ' Shuffle the array and flood the first TargetFlood cells
+    For i = DugCount - 1 To 1 Step -1
+        j = Int(Rnd * (i + 1))
+        ' Swap
+        TempX = DugCells(i, 0)
+        TempY = DugCells(i, 1)
+        DugCells(i, 0) = DugCells(j, 0)
+        DugCells(i, 1) = DugCells(j, 1)
+        DugCells(j, 0) = TempX
+        DugCells(j, 1) = TempY
+    Next i
+
+    ' Flood the selected cells
+    For i = 0 To TargetFlood - 1
+        Grid(DugCells(i, 0), DugCells(i, 1)).CellType = CELL_WATER
+    Next i
 End Sub
 
 ' ============================================================================
@@ -495,7 +640,7 @@ Public Function DrillGranite(ByVal Direction As Integer) As Boolean
     Dim TargetX As Integer, TargetY As Integer
 
     If Not HasDrill Then
-        MsgBox "You need a drill to break through granite!", vbExclamation, "MinerVGA"
+        Call AddMessage("Need drill!")
         DrillGranite = False
         Exit Function
     End If
@@ -522,6 +667,15 @@ Public Function DrillGranite(ByVal Direction As Integer) As Boolean
         Player.Cash = Player.Cash - DRILL_COST
         Grid(TargetX, TargetY).CellType = CELL_DUG
         Grid(TargetX, TargetY).Dug = True
+
+        ' Use drill durability
+        DrillUses = DrillUses - 1
+        If DrillUses <= 0 Then
+            HasDrill = False
+            DrillUses = 0
+            Call AddMessage("Drill broke!")
+        End If
+
         DrillGranite = True
     Else
         DrillGranite = False
@@ -533,7 +687,7 @@ Public Function PumpWater(ByVal Direction As Integer) As Boolean
     Dim Cost As Long
 
     If Not HasBucket Then
-        MsgBox "You need a bucket to pump water!", vbExclamation, "MinerVGA"
+        Call AddMessage("Need bucket!")
         PumpWater = False
         Exit Function
     End If
@@ -555,8 +709,8 @@ Public Function PumpWater(ByVal Direction As Integer) As Boolean
         Exit Function
     End If
 
-    ' Check if target is water
-    If Grid(TargetX, TargetY).CellType = CELL_WATER Or Grid(TargetX, TargetY).CellType = CELL_WHIRLPOOL Then
+    ' Check if target is water (only regular water can be pumped, not whirlpool/spring)
+    If Grid(TargetX, TargetY).CellType = CELL_WATER Then
         If HasPump Then
             Cost = PUMP_COST_WITH_PUMP
         Else
@@ -565,35 +719,101 @@ Public Function PumpWater(ByVal Direction As Integer) As Boolean
 
         Player.Cash = Player.Cash - Cost
         Grid(TargetX, TargetY).CellType = CELL_DUG
+
+        ' Use bucket durability
+        BucketUses = BucketUses - 1
+        If BucketUses <= 0 Then
+            HasBucket = False
+            BucketUses = 0
+            Call AddMessage("Bucket broke!")
+        End If
+
         PumpWater = True
     Else
         PumpWater = False
     End If
 End Function
 
+Public Function UseDynamiteOnTarget(ByVal Direction As Integer) As Boolean
+    ' Use dynamite to clear a cave-in or whirlpool in the specified direction
+    Dim TargetX As Integer, TargetY As Integer
+    Dim CellType As Integer
+
+    If Not HasDynamite Then
+        Call AddMessage("Need dynamite!")
+        UseDynamiteOnTarget = False
+        Exit Function
+    End If
+
+    If Not HasTorch Then
+        Call AddMessage("Need torch!")
+        UseDynamiteOnTarget = False
+        Exit Function
+    End If
+
+    ' Determine target cell
+    TargetX = Player.X
+    TargetY = Player.Y
+
+    Select Case Direction
+        Case KEY_LEFT: TargetX = Player.X - 1
+        Case KEY_RIGHT: TargetX = Player.X + 1
+        Case KEY_UP: TargetY = Player.Y - 1
+        Case KEY_DOWN: TargetY = Player.Y + 1
+    End Select
+
+    ' Check bounds
+    If TargetX < 0 Or TargetX >= GRID_COLS Or TargetY < 0 Or TargetY >= GRID_ROWS Then
+        UseDynamiteOnTarget = False
+        Exit Function
+    End If
+
+    CellType = Grid(TargetX, TargetY).CellType
+
+    ' Check if target is cave-in, whirlpool, or spring
+    If CellType = CELL_CAVE Or CellType = CELL_WHIRLPOOL Or CellType = CELL_SPRING Then
+        ' Clear the hazard
+        Grid(TargetX, TargetY).CellType = CELL_DUG
+        Grid(TargetX, TargetY).Dug = True
+        Grid(TargetX, TargetY).Modifier = MOD_NONE
+
+        ' Use up dynamite (one-time use)
+        HasDynamite = False
+        Call AddMessage("Boom!")
+
+        ' Small damage from explosion
+        Call InjurePlayer(5)
+
+        UseDynamiteOnTarget = True
+    Else
+        Call AddMessage("No target!")
+        UseDynamiteOnTarget = False
+    End If
+End Function
+
 Public Function UseDynamite() As Boolean
     If Not HasDynamite Then
-        MsgBox "You need dynamite!", vbExclamation, "MinerVGA"
+        Call AddMessage("Need dynamite!")
         UseDynamite = False
         Exit Function
     End If
 
     If Not HasTorch Then
-        MsgBox "You need a torch to light the dynamite!", vbExclamation, "MinerVGA"
+        Call AddMessage("Need torch!")
         UseDynamite = False
         Exit Function
     End If
 
     ' Check escape route to the right
     If Player.X >= GRID_COLS - 1 Then
-        MsgBox "No escape route! You need a clear path to your right!", vbExclamation, "MinerVGA"
+        Call AddMessage("No escape!")
         UseDynamite = False
         Exit Function
     End If
 
     If Grid(Player.X + 1, Player.Y).CellType <> CELL_DUG And _
        Grid(Player.X + 1, Player.Y).CellType <> CELL_AIR Then
-        MsgBox "No escape route! You need a clear path to your right!", vbExclamation, "MinerVGA"
+        Call AddMessage("No escape!")
         UseDynamite = False
         Exit Function
     End If

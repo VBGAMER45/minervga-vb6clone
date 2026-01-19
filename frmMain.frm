@@ -262,7 +262,10 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
             Call PumpWater(LastDirection)
 
         Case KEY_Y
-            Call UseDynamite
+            ' Try to clear cave-in/whirlpool first, otherwise do big blast
+            If Not UseDynamiteOnTarget(LastDirection) Then
+                Call UseDynamite
+            End If
 
         Case KEY_Q
             SoundEnabled = Not SoundEnabled

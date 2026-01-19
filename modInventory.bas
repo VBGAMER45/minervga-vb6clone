@@ -134,11 +134,15 @@ Public Sub GiveItem(ByVal ItemID As Integer)
     Select Case ItemID
         Case ITEM_SHOVEL: HasShovel = True
         Case ITEM_PICKAXE: HasPickaxe = True
-        Case ITEM_DRILL: HasDrill = True
+        Case ITEM_DRILL
+            HasDrill = True
+            DrillUses = MAX_DRILL_USES  ' 5 uses
         Case ITEM_LANTERN
             HasLantern = True
             LanternFuel = LANTERN_MAX_FUEL
-        Case ITEM_BUCKET: HasBucket = True
+        Case ITEM_BUCKET
+            HasBucket = True
+            BucketUses = MAX_BUCKET_USES  ' 20 uses
         Case ITEM_TORCH
             HasTorch = True
             TorchFuel = TORCH_MAX_FUEL
@@ -155,11 +159,15 @@ Public Sub RemoveItem(ByVal ItemID As Integer)
     Select Case ItemID
         Case ITEM_SHOVEL: HasShovel = False
         Case ITEM_PICKAXE: HasPickaxe = False
-        Case ITEM_DRILL: HasDrill = False
+        Case ITEM_DRILL
+            HasDrill = False
+            DrillUses = 0
         Case ITEM_LANTERN
             HasLantern = False
             LanternFuel = 0
-        Case ITEM_BUCKET: HasBucket = False
+        Case ITEM_BUCKET
+            HasBucket = False
+            BucketUses = 0
         Case ITEM_TORCH
             HasTorch = False
             TorchFuel = 0

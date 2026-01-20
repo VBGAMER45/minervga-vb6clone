@@ -372,6 +372,7 @@ Public Sub SaveGame(Optional ByVal FilePath As String = "")
     Print #FileNum, CInt(HasPump)
     Print #FileNum, CInt(HasClover)
     Print #FileNum, CInt(HasDiamond)
+    Print #FileNum, CInt(HasCollectedGemstone)
 
     ' Fuel and durability
     Print #FileNum, LanternFuel
@@ -517,16 +518,24 @@ Private Sub LoadGameV2(ByVal FileNum As Integer, ByVal Version As String)
     Input #FileNum, TempVar: HasClover = CBool(TempVar)
     Input #FileNum, TempVar: HasDiamond = CBool(TempVar)
 
+    ' HasCollectedGemstone (new field - check for EOF for old saves)
+    If Not EOF(FileNum) Then
+        Input #FileNum, TempVar: HasCollectedGemstone = CBool(TempVar)
+    Else
+        ' Old save file - default based on HasDiamond
+        HasCollectedGemstone = HasDiamond
+    End If
+
     ' Fuel and durability
-    Input #FileNum, LanternFuel
-    Input #FileNum, TorchFuel
-    Input #FileNum, BucketUses
-    Input #FileNum, DrillUses
+    If Not EOF(FileNum) Then Input #FileNum, LanternFuel
+    If Not EOF(FileNum) Then Input #FileNum, TorchFuel
+    If Not EOF(FileNum) Then Input #FileNum, BucketUses
+    If Not EOF(FileNum) Then Input #FileNum, DrillUses
 
     ' Elevator
-    Input #FileNum, ElevatorY
-    Input #FileNum, MaxElevatorDepth
+    If Not EOF(FileNum) Then Input #FileNum, ElevatorY
+    If Not EOF(FileNum) Then Input #FileNum, MaxElevatorDepth
 
     ' Luck
-    Input #FileNum, PlayerLuck
+    If Not EOF(FileNum) Then Input #FileNum, PlayerLuck
 End Sub

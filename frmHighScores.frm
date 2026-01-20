@@ -16,32 +16,12 @@ Begin VB.Form frmHighScores
    ScaleWidth      =   512
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.TextBox txtName
-      BackColor       =   &H00404040&
-      BeginProperty Font
-         Name            =   "Consolas"
-         Size            =   12
-         Charset         =   0
-         Weight          =   700
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      ForeColor       =   &H0000FF00&
-      Height          =   375
-      Left            =   2400
-      MaxLength       =   15
-      TabIndex        =   1
-      Top             =   5400
-      Visible         =   0   'False
-      Width           =   2895
-   End
    Begin VB.PictureBox picScores
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
-      Height          =   6135
+      Height          =   6375
       Left            =   0
-      ScaleHeight     =   405
+      ScaleHeight     =   421
       ScaleMode       =   3  'Pixel
       ScaleWidth      =   506
       TabIndex        =   0
@@ -61,12 +41,8 @@ Option Explicit
 ' ============================================================================
 
 Private Const MAX_SCORES As Integer = 10
-Private EnteringName As Boolean
-Private NewScoreRank As Integer
 
 Private Sub Form_Load()
-    EnteringName = False
-    NewScoreRank = 0
     Call DrawHighScores
 End Sub
 
@@ -113,10 +89,7 @@ Private Sub DrawHighScores()
     ' Draw scores
     picScores.FontBold = False
     For i = 1 To MAX_SCORES
-        If i = NewScoreRank And EnteringName Then
-            ' Highlight new score entry
-            picScores.ForeColor = vbGreen
-        ElseIf i <= 3 Then
+        If i <= 3 Then
             ' Gold, Silver, Bronze
             Select Case i
                 Case 1: picScores.ForeColor = &HD7FF&    ' Gold
@@ -158,79 +131,20 @@ Private Sub DrawHighScores()
         Y = Y + 22
     Next i
 
-    Y = Y + 20
-
-    ' Instructions
-    If EnteringName Then
-        picScores.ForeColor = vbGreen
-        picScores.FontBold = True
-        picScores.CurrentX = 80
-        picScores.CurrentY = Y
-        picScores.Print "NEW HIGH SCORE! Enter your name:"
-
-        ' Position the text box
-        txtName.Top = Y + 20
-        txtName.Visible = True
-        txtName.SetFocus
-    Else
-        picScores.ForeColor = vbYellow
-        picScores.CurrentX = 120
-        picScores.CurrentY = Y
-        picScores.Print "Press any key to continue..."
-    End If
+    ' Show continue instruction
+    Y = Y + 15
+    picScores.ForeColor = vbYellow
+    picScores.CurrentX = 100
+    picScores.CurrentY = Y
+    picScores.Print "Press any key to continue..."
 
     picScores.Refresh
 End Sub
 
-Public Sub SetNewScore(ByVal Score As Long)
-    ' Check if this is a high score
-    NewScoreRank = GetScoreRank(Score)
-
-    If NewScoreRank > 0 And NewScoreRank <= MAX_SCORES Then
-        EnteringName = True
-        txtName.Text = ""
-        txtName.Visible = True
-        Call DrawHighScores
-    End If
-End Sub
-
-Private Sub txtName_KeyDown(KeyCode As Integer, Shift As Integer)
-    If KeyCode = vbKeyReturn Then
-        Call SaveNewScore
-    ElseIf KeyCode = vbKeyEscape Then
-        ' Cancel - use default name
-        txtName.Text = "Anonymous"
-        Call SaveNewScore
-    End If
-End Sub
-
-Private Sub SaveNewScore()
-    Dim PlayerName As String
-
-    PlayerName = Trim(txtName.Text)
-    If PlayerName = "" Then PlayerName = "Anonymous"
-
-    ' Insert the new score
-    Call InsertHighScore(NewScoreRank, PlayerName, Player.Cash)
-
-    ' Save to file
-    Call SaveHighScores
-
-    EnteringName = False
-    txtName.Visible = False
-    NewScoreRank = 0
-
-    Call DrawHighScores
-End Sub
-
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
-    If Not EnteringName Then
-        Unload Me
-    End If
+    Unload Me
 End Sub
 
 Private Sub picScores_Click()
-    If Not EnteringName Then
-        Unload Me
-    End If
+    Unload Me
 End Sub

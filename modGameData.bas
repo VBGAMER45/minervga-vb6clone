@@ -70,7 +70,7 @@ Public Const TORCH_MAX_FUEL As Integer = 100
 
 ' --- Grid Dimensions ---
 Public Const GRID_COLS As Integer = 40
-Public Const GRID_ROWS As Integer = 118          ' Expanded to match JS version
+Public Const GRID_ROWS As Integer = 118          ' Expanded
 Public Const CELL_WIDTH As Integer = 16
 Public Const CELL_HEIGHT As Integer = 24
 
@@ -164,16 +164,16 @@ Public Const KEY_Y As Integer = 89   ' dYnamite
 Public Const KEY_Q As Integer = 81   ' Quiet (sound)
 
 ' --- Modifier Spawn Chances (per 1040 - cumulative thresholds) ---
-Public Const CHANCE_PLATINUM As Integer = 2       ' 2/1040 - Very rare
-Public Const CHANCE_GOLD As Integer = 32          ' 30/1040 - Rare
-Public Const CHANCE_SILVER As Integer = 102       ' 70/1040 - Uncommon
+Public Const CHANCE_PLATINUM As Integer = 25       ' 2/1040 - Very rare
+Public Const CHANCE_GOLD As Integer = 75         ' 30/1040 - Rare
+Public Const CHANCE_SILVER As Integer = 125       ' 70/1040 - Uncommon
 Public Const CHANCE_SPRING As Integer = 342       ' 240/1040 - Common
 Public Const CHANCE_CAVEIN As Integer = 642       ' 300/1040 - Common
 Public Const CHANCE_GRANITE As Integer = 892      ' 250/1040 - Common (slightly less than cavein)
 Public Const CHANCE_VOLCANIC As Integer = 1042    ' 150/1040 - Less common
 ' Sandstone and rare items handled in secondary roll
 
-' --- Sprite Indices (matching JavaScript tileset.bmp layout) ---
+' --- Sprite Indices (tileset.bmp layout) ---
 ' Row 0 (0-7)
 Public Const SPR_BLACK As Integer = 0           ' Empty/black tile
 Public Const SPR_CLEARED As Integer = 1         ' Dug/cleared area

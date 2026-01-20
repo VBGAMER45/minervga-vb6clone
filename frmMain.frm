@@ -244,11 +244,21 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
     End If
 
     If GameState = STATE_DEAD Or GameState = STATE_WON Or GameState = STATE_BANKRUPT Then
-        ' Any key returns to title
+        ' Show high scores before returning to title
+        Dim FinalScore As Long
+        FinalScore = Player.Cash
+        If FinalScore < 0 Then FinalScore = 0
+
+        ' Reset game first
         Call InitPlayer
         Call InitializeGrid
         Call ClearMessages
         GameState = STATE_TITLE
+
+        ' Now show high scores (modal - blocks until closed)
+        Call ShowHighScores(FinalScore)
+
+        ' Then show title
         Call ShowTitleScreen
         Exit Sub
     End If
@@ -1149,11 +1159,6 @@ Private Sub ShowDeathScreen()
     picGame.Print "Press any key to continue..."
 
     picGame.Refresh
-
-    ' Check for high score
-    If Player.Cash > 0 Then
-        Call ShowHighScores(Player.Cash)
-    End If
 End Sub
 
 Private Sub ShowWinScreen()
@@ -1187,9 +1192,6 @@ Private Sub ShowWinScreen()
     picGame.Refresh
     GameState = STATE_WON
     tmrGame.Enabled = False
-
-    ' Show high scores (winning players get their score recorded)
-    Call ShowHighScores(Player.Cash)
 End Sub
 
 Private Sub ShowBankruptScreen()
@@ -1222,9 +1224,6 @@ Private Sub ShowBankruptScreen()
     picGame.Print "Press any key to continue..."
 
     picGame.Refresh
-
-    ' Show high scores (bankruptcy won't qualify but shows the list)
-    Call ShowHighScores(0)
 End Sub
 
 Private Sub CheckWinCondition()

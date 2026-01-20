@@ -160,12 +160,12 @@ Private Sub DrawItemList(ByVal StartY As Integer)
     Call DrawStoreItem(Y, "G", SPR_DYNAMITE, COST_DYNAMITE, HasDynamite)
     Y = Y + 30
 
-    ' Item R - Ring ($100)
-    Call DrawStoreItem(Y, "R", SPR_RING, COST_RING, HasRing)
+    ' Item R - Ring ($100) - Requires gemstone to purchase
+    Call DrawStoreItem(Y, "R", SPR_RING, COST_RING, HasRing, True)
     Y = Y + 30
 End Sub
 
-Private Sub DrawStoreItem(ByVal Y As Integer, ByVal Key As String, ByVal SpriteIdx As Integer, ByVal Cost As Long, ByVal Owned As Boolean)
+Private Sub DrawStoreItem(ByVal Y As Integer, ByVal Key As String, ByVal SpriteIdx As Integer, ByVal Cost As Long, ByVal Owned As Boolean, Optional ByVal RequiresGem As Boolean = False)
     Dim X As Integer
     Dim SrcX As Integer, SrcY As Integer
 
@@ -187,6 +187,11 @@ Private Sub DrawStoreItem(ByVal Y As Integer, ByVal Key As String, ByVal SpriteI
         picStore.CurrentX = X
         picStore.CurrentY = Y + 4
         picStore.Print "Press " & Key & " - OWNED"
+    ElseIf RequiresGem And Not HasCollectedGemstone Then
+        picStore.ForeColor = vbYellow  ' Yellow for locked
+        picStore.CurrentX = X
+        picStore.CurrentY = Y + 4
+        picStore.Print "Press " & Key & " - $" & Cost & " (Requires Gemstone)"
     Else
         picStore.ForeColor = vbWhite
         picStore.CurrentX = X
@@ -246,6 +251,16 @@ Private Function TryBuyItem(ByVal ItemID As Integer, ByVal Cost As Long) As Bool
     If HasItem(ItemID) Then
         Call AddMessage("Already owned!")
         Exit Function
+    End If
+
+    ' Special check for ring - requires having collected a gemstone first
+    If ItemID = ITEM_RING Then
+        If Not HasCollectedGemstone Then
+            Call AddMessage("Need gemstone first!")
+            MsgBox "The jeweler says: 'I need a gemstone to craft this ring!" & vbCrLf & _
+                   "Find a gemstone while mining and bring it to me.'", vbInformation, "General Store"
+            Exit Function
+        End If
     End If
 
     ' Check if can afford

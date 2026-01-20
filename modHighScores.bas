@@ -162,8 +162,29 @@ End Sub
 ' Show High Scores (called after game ends)
 ' ============================================================================
 Public Sub ShowHighScores(Optional ByVal NewScore As Long = 0)
-    If NewScore > 0 And IsHighScore(NewScore) Then
-        frmHighScores.SetNewScore NewScore
+    Dim Qualifies As Boolean
+    Dim Rank As Integer
+    Dim PlayerName As String
+
+    Qualifies = IsHighScore(NewScore)
+    Rank = GetScoreRank(NewScore)
+
+    ' If this is a qualifying high score, prompt for name
+    If NewScore > 0 And Qualifies And Rank > 0 Then
+        PlayerName = InputBox("NEW HIGH SCORE!" & vbCrLf & vbCrLf & _
+                              "Your score: $" & Format(NewScore, "#,##0") & vbCrLf & _
+                              "Rank: #" & Rank & vbCrLf & vbCrLf & _
+                              "Enter your name:", "Hall of Fame", "Player")
+
+        If PlayerName = "" Then PlayerName = "Anonymous"
+
+        ' Insert the score
+        Call InsertHighScore(Rank, PlayerName, NewScore)
+
+        ' Save to file
+        Call SaveHighScores
     End If
+
+    ' Show the high scores list
     frmHighScores.Show vbModal
 End Sub

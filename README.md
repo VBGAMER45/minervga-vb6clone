@@ -113,9 +113,9 @@ MinerVGA/
 
 | Mineral | Chance |
 |---------|--------|
-| Platinum | 2 |
-| Gold | 30 |
-| Silver | 70 |
+| Platinum | 25 |
+| Gold | 75 |
+| Silver | 125 |
 
 ### Hazard Spawn Rates
 

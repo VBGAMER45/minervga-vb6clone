@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
-Begin VB.Form frmMain
+Begin VB.Form frmMain 
    BackColor       =   &H00000000&
    Caption         =   "MinerVGA"
    ClientHeight    =   6480
@@ -13,7 +13,7 @@ Begin VB.Form frmMain
    ScaleMode       =   3  'Pixel
    ScaleWidth      =   648
    StartUpPosition =   2  'CenterScreen
-   Begin MSComDlg.CommonDialog dlgFile
+   Begin MSComDlg.CommonDialog dlgFile 
       Left            =   600
       Top             =   6000
       _ExtentX        =   847
@@ -22,9 +22,8 @@ Begin VB.Form frmMain
       DefaultExt      =   "sav"
       DialogTitle     =   "MinerVGA Save Game"
       Filter          =   "Save Files (*.sav)|*.sav|All Files (*.*)|*.*"
-      InitDir         =   ""
    End
-   Begin VB.Timer tmrGame
+   Begin VB.Timer tmrGame 
       Enabled         =   0   'False
       Interval        =   50
       Left            =   120
@@ -75,28 +74,28 @@ Begin VB.Form frmMain
       Top             =   6180
       Width           =   9735
    End
-   Begin VB.Menu mnuFile
+   Begin VB.Menu mnuFile 
       Caption         =   "&File"
-      Begin VB.Menu mnuLoadGame
+      Begin VB.Menu mnuLoadGame 
          Caption         =   "Load Game"
       End
-      Begin VB.Menu mnuSaveGame
+      Begin VB.Menu mnuSaveGame 
          Caption         =   "Save Game"
       End
-      Begin VB.Menu mnuSEP1
+      Begin VB.Menu mnuSEP1 
          Caption         =   "-"
       End
-      Begin VB.Menu mnuHighScores
+      Begin VB.Menu mnuHighScores 
          Caption         =   "High Scores"
       End
-      Begin VB.Menu mnuSEP2
+      Begin VB.Menu mnuSEP2 
          Caption         =   "-"
       End
-      Begin VB.Menu mnuExit
+      Begin VB.Menu mnuExit 
          Caption         =   "Exit"
       End
    End
-   Begin VB.Menu mnuHelp
+   Begin VB.Menu mnuHelp 
       Caption         =   "&Help"
    End
 End
@@ -105,6 +104,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================
@@ -423,7 +427,6 @@ End Sub
 ' Sprite Loading
 ' ============================================================================
 
-
 Private Sub InitSpriteFilenames()
     ' Initialize tileset dimensions (8 columns x 7 rows)
     TilesetCols = 8
@@ -436,7 +439,6 @@ Private Sub LoadSprites()
     Dim TilesetPath As String
     Dim TitlePath As String
 
-    ' Try javascript folder first (where BMP files are)
     TilesetPath = App.Path & "\tileset.bmp"
     TitlePath = App.Path & "\title-screen.bmp"
 
@@ -504,7 +506,7 @@ Private Sub DrawSpriteTransparent(ByVal SpriteIndex As Integer, ByVal DestX As I
 End Sub
 
 ' ============================================================================
-' Town Sprite Mapping (matches JavaScript version)
+' Town Sprite Mapping
 ' ============================================================================
 Private Function GetTownSprite(ByVal X As Integer, ByVal Y As Integer) As Integer
     ' Returns sprite index for town area, or -1 if default sky
@@ -1224,18 +1226,6 @@ Private Sub ShowBankruptScreen()
     picGame.Print "Press any key to continue..."
 
     picGame.Refresh
-End Sub
-
-Private Sub CheckWinCondition()
-    ' Check if player meets win conditions
-    ' Requires: $20,000+ AND diamond ring
-    ' Win is triggered when visiting Miss Mimi at saloon
-    ' This function just checks basic requirements
-
-    If Player.Cash >= WIN_MONEY And HasRing Then
-        ' Player has met requirements, but must visit saloon to win
-        ' The actual win trigger is in frmSaloon
-    End If
 End Sub
 
 ' ============================================================================

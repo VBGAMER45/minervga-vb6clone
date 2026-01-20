@@ -34,10 +34,15 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================
-' MinerVGA - Bank Form (Graphical Interface)
+' MinerVGA - Bank Form
 ' ============================================================================
 
 Private picTileset As StdPicture
@@ -340,7 +345,7 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
 End Sub
 
 Private Sub picBank_Click()
-    ' Allow clicking to dismiss (optional)
+    Unload Me
 End Sub
 
 ' Color constants for minerals

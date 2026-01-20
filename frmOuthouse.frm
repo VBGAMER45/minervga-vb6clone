@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmOuthouse
+Begin VB.Form frmOuthouse 
    BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Outhouse"
@@ -16,7 +16,7 @@ Begin VB.Form frmOuthouse
    ScaleWidth      =   320
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.PictureBox picOuthouse
+   Begin VB.PictureBox picOuthouse 
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
       Height          =   3375
@@ -34,6 +34,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================

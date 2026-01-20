@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmHighScores
+Begin VB.Form frmHighScores 
    BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "MinerVGA Hall of Fame"
@@ -16,7 +16,7 @@ Begin VB.Form frmHighScores
    ScaleWidth      =   512
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.PictureBox picScores
+   Begin VB.PictureBox picScores 
       AutoRedraw      =   -1  'True
       BackColor       =   &H00000000&
       Height          =   6375
@@ -34,6 +34,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================

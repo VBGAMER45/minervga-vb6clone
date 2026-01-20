@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmHelp
+Begin VB.Form frmHelp 
    BackColor       =   &H00000000&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "MinerVGA Help"
@@ -14,7 +14,7 @@ Begin VB.Form frmHelp
    ScaleWidth      =   7200
    ShowInTaskbar   =   0   'False
    StartUpPosition =   1  'CenterOwner
-   Begin VB.CommandButton cmdClose
+   Begin VB.CommandButton cmdClose 
       Caption         =   "&Close"
       Height          =   375
       Left            =   5760
@@ -22,9 +22,9 @@ Begin VB.Form frmHelp
       Top             =   5520
       Width           =   1335
    End
-   Begin VB.TextBox txtHelp
+   Begin VB.TextBox txtHelp 
       BackColor       =   &H00000000&
-      BeginProperty Font
+      BeginProperty Font 
          Name            =   "Consolas"
          Size            =   9
          Charset         =   0
@@ -49,6 +49,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================

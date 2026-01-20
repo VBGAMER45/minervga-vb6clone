@@ -1,4 +1,9 @@
 Attribute VB_Name = "modPlayer"
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================
@@ -41,9 +46,9 @@ Public TorchFuel As Integer
 
 ' --- Item Durability ---
 Public BucketUses As Integer   ' Bucket lasts 20 uses
-Public DrillUses As Integer    ' Drill lasts 5 uses
+Public DrillUses As Integer    ' Drill lasts 20 uses
 Public Const MAX_BUCKET_USES As Integer = 20
-Public Const MAX_DRILL_USES As Integer = 5
+Public Const MAX_DRILL_USES As Integer = 20
 
 ' --- Luck System ---
 Public PlayerLuck As Integer  ' Base luck value (clover adds +20)
@@ -741,12 +746,36 @@ Public Function DrillGranite(ByVal Direction As Integer) As Boolean
         Grid(TargetX, TargetY).CellType = CELL_DUG
         Grid(TargetX, TargetY).Dug = True
 
+        ' Random chance to find minerals in granite
+        ' 35% silver, 15% gold, 5% platinum, 45% nothing
+        Dim MineralRoll As Integer
+        MineralRoll = Int(Rnd * 100) + 1
+
+        If MineralRoll <= 5 Then
+            ' 5% chance - Platinum!
+            Player.Platinum = Player.Platinum + 1
+            Call AddMessage("Platinum in granite!")
+        ElseIf MineralRoll <= 20 Then
+            ' 15% chance - Gold
+            Player.Gold = Player.Gold + 1
+            Call AddMessage("Gold in granite!")
+        ElseIf MineralRoll <= 55 Then
+            ' 35% chance - Silver
+            Player.Silver = Player.Silver + 1
+            Call AddMessage("Silver in granite!")
+        Else
+            ' No mineral found
+            Call AddMessage("Drilled granite!")
+        End If
+
         ' Use drill durability
         DrillUses = DrillUses - 1
         If DrillUses <= 0 Then
             HasDrill = False
             DrillUses = 0
             Call AddMessage("Drill broke!")
+        Else
+            Call AddMessage("Drill: " & DrillUses & " uses left")
         End If
 
         DrillGranite = True

@@ -1,4 +1,9 @@
 Attribute VB_Name = "modInventory"
+' ============================================================================
+' MinerVGA VB6 Edition by vbgamer45
+' https://github.com/VBGAMER45/minervga-vb6clone
+' https://www.theprogrammingzone.com/
+' ============================================================================
 Option Explicit
 
 ' ============================================================================
@@ -113,7 +118,7 @@ Public Function GetItemDescription(ByVal ItemID As Integer) As String
     Select Case ItemID
         Case ITEM_SHOVEL: GetItemDescription = "Reduces digging cost"
         Case ITEM_PICKAXE: GetItemDescription = "Reduces digging cost"
-        Case ITEM_DRILL: GetItemDescription = "Drills through granite"
+        Case ITEM_DRILL: GetItemDescription = "Drills granite (20 uses, may find minerals)"
         Case ITEM_LANTERN: GetItemDescription = "Light source (lasts longer)"
         Case ITEM_BUCKET: GetItemDescription = "Required to pump water"
         Case ITEM_TORCH: GetItemDescription = "Light source, lights dynamite"
@@ -136,7 +141,7 @@ Public Sub GiveItem(ByVal ItemID As Integer)
         Case ITEM_PICKAXE: HasPickaxe = True
         Case ITEM_DRILL
             HasDrill = True
-            DrillUses = MAX_DRILL_USES  ' 5 uses
+            DrillUses = MAX_DRILL_USES  ' 20 uses
         Case ITEM_LANTERN
             HasLantern = True
             LanternFuel = LANTERN_MAX_FUEL

@@ -53,7 +53,7 @@ MinerVGA is a mining simulation game where you dig through the earth searching f
 |------|------|-------------|
 | Shovel | $50 | Reduces digging cost |
 | Pickaxe | $100 | Further reduces digging cost |
-| Drill | $500 | Drills through granite (5 uses) |
+| Drill | $500 | Drills through granite (20 uses) |
 | Lantern | $75 | See hidden minerals (long lasting) |
 | Torch | $25 | See hidden minerals (short lasting) |
 | Bucket | $30 | Pump water (20 uses) |

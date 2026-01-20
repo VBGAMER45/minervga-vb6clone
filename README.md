@@ -2,8 +2,7 @@
 
 A faithful recreation of the classic MinerVGA mining game, built in Visual Basic 6.
 
-![MinerVGA Gameplay]
-(ui.PNG)
+![MinerVGA Gameplay](ui.png)
 
 ## About
 
@@ -102,8 +101,6 @@ MinerVGA/
 └── MinerVGA.vbp         # VB6 project file
 ```
 
-### Gameplay
-![Gameplay]
 
 ## Technical Details
 

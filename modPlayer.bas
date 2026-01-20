@@ -33,6 +33,7 @@ Public HasCondom As Boolean
 Public HasPump As Boolean
 Public HasClover As Boolean
 Public HasDiamond As Boolean
+Public HasCollectedGemstone As Boolean  ' True if player has ever found a diamond (required to buy ring)
 
 ' --- Fuel Tracking ---
 Public LanternFuel As Integer
@@ -80,6 +81,7 @@ Public Sub InitPlayer()
     HasPump = False
     HasClover = False
     HasDiamond = False
+    HasCollectedGemstone = False
 
     ' Reset fuel, durability, and luck
     LanternFuel = 0
@@ -365,14 +367,41 @@ End Sub
 ' ============================================================================
 Private Sub HandleModifier(ByVal X As Integer, ByVal Y As Integer, ByVal Modifier As Integer)
     Select Case Modifier
+        Case MOD_NONE
+            ' Check for luck bonus if player has clover
+            Call CheckLuckyFind(X, Y)
+
         Case MOD_SILVER
             Player.Silver = Player.Silver + 1
+            Call AddMessage("Found Silver!")
 
         Case MOD_GOLD
             Player.Gold = Player.Gold + 1
+            Call AddMessage("Found Gold!")
 
         Case MOD_PLATINUM
             Player.Platinum = Player.Platinum + 1
+            Call AddMessage("Found Platinum!")
+
+        Case MOD_DIAMOND
+            ' Found a gemstone! Give diamond and mark as collected
+            HasDiamond = True
+            HasCollectedGemstone = True
+            Call AddMessage("Found Gemstone!")
+            Call PlayItemSound
+
+        Case MOD_CLOVER
+            ' Found lucky clover!
+            HasClover = True
+            PlayerLuck = PlayerLuck + 20
+            Call AddMessage("Found Clover!")
+            Call PlayItemSound
+
+        Case MOD_PUMP
+            ' Found water pump!
+            HasPump = True
+            Call AddMessage("Found Pump!")
+            Call PlayItemSound
 
         Case MOD_CAVEIN
             Call InjurePlayer(DAMAGE_CAVEIN)
@@ -401,6 +430,50 @@ Private Sub HandleModifier(ByVal X As Integer, ByVal Y As Integer, ByVal Modifie
             Call FloodNearby(X, Y)
             Call LoseRandomItem  ' Chance to lose item on spring
     End Select
+End Sub
+
+' ============================================================================
+' Lucky Find Check (when clover owned, chance to find bonus items)
+' ============================================================================
+Private Sub CheckLuckyFind(ByVal X As Integer, ByVal Y As Integer)
+    Dim LuckRoll As Integer
+    Dim LuckBonus As Integer
+
+    ' Only check if player has clover
+    If Not HasClover Then Exit Sub
+
+    ' Roll for lucky find (base 5% chance, +1% per luck point)
+    LuckBonus = GetPlayerLuck()
+    LuckRoll = Int(Rnd * 100) + 1
+
+    If LuckRoll <= 5 + (LuckBonus \ 5) Then
+        ' Lucky find! Determine what was found
+        Dim FindRoll As Integer
+        FindRoll = Int(Rnd * 100) + 1
+
+        If FindRoll <= 5 And Not HasDiamond Then
+            ' Found a gemstone! (5% of lucky finds)
+            HasDiamond = True
+            HasCollectedGemstone = True
+            Call AddMessage("Lucky Gemstone!")
+            Call PlayItemSound
+        ElseIf FindRoll <= 15 And Not HasPump Then
+            ' Found a pump! (10% of lucky finds)
+            HasPump = True
+            Call AddMessage("Lucky Pump!")
+            Call PlayItemSound
+        ElseIf FindRoll <= 50 Then
+            ' Found gold! (35% of lucky finds)
+            Player.Gold = Player.Gold + 1
+            Call AddMessage("Lucky Gold!")
+            Call PlayMineralSound
+        Else
+            ' Found silver (50% of lucky finds)
+            Player.Silver = Player.Silver + 1
+            Call AddMessage("Lucky Silver!")
+            Call PlayMineralSound
+        End If
+    End If
 End Sub
 
 ' ============================================================================

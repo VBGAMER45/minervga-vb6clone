@@ -96,8 +96,14 @@ Begin VB.Form frmMain
          Caption         =   "Exit"
       End
    End
-   Begin VB.Menu mnuHelp 
+   Begin VB.Menu mnuHelpMenu
       Caption         =   "&Help"
+      Begin VB.Menu mnuHelp
+         Caption         =   "Game Help"
+      End
+      Begin VB.Menu mnuAbout
+         Caption         =   "About MinerVGA"
+      End
    End
 End
 Attribute VB_Name = "frmMain"
@@ -360,6 +366,10 @@ End Sub
 
 Private Sub mnuHelp_Click()
     Call ShowHelp
+End Sub
+
+Private Sub mnuAbout_Click()
+    frmAbout.Show vbModal
 End Sub
 
 Private Sub mnuHighScores_Click()

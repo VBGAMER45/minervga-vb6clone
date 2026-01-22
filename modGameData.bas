@@ -169,8 +169,8 @@ Public Const KEY_Y As Integer = 89   ' dYnamite
 Public Const KEY_Q As Integer = 81   ' Quiet (sound)
 
 ' --- Modifier Spawn Chances (per 1040 - cumulative thresholds) ---
-Public Const CHANCE_PLATINUM As Integer = 25       ' 2/1040 - Very rare
-Public Const CHANCE_GOLD As Integer = 75         ' 30/1040 - Rare
+Public Const CHANCE_PLATINUM As Integer = 20       ' 2/1040 - Very rare
+Public Const CHANCE_GOLD As Integer = 70         ' 30/1040 - Rare
 Public Const CHANCE_SILVER As Integer = 125       ' 70/1040 - Uncommon
 Public Const CHANCE_SPRING As Integer = 342       ' 240/1040 - Common
 Public Const CHANCE_CAVEIN As Integer = 642       ' 300/1040 - Common

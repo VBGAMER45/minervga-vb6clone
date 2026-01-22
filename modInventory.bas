@@ -434,10 +434,6 @@ Public Sub LoadGame(Optional ByVal FilePath As String = "")
     If Left(FileVersion, 13) = "MINERVGA_SAVE" Then
         ' New format with version header
         Call LoadGameV2(FileNum, FileVersion)
-    Else
-        ' Old format - first value is Player.X
-        Player.X = CInt(FileVersion)
-        Call LoadGameV1(FileNum)
     End If
 
     Close #FileNum
@@ -456,45 +452,6 @@ LoadError:
     Close #FileNum
 End Sub
 
-Private Sub LoadGameV1(ByVal FileNum As Integer)
-    Dim TempVar As Variant
-
-    ' Old save format (Player.X already read)
-    Input #FileNum, Player.Y
-    Input #FileNum, Player.Health
-    Input #FileNum, Player.Cash
-    Input #FileNum, Player.Silver
-    Input #FileNum, Player.Gold
-    Input #FileNum, Player.Platinum
-    Input #FileNum, Player.Facing
-
-    ' Inventory (read as variant to handle both True/False strings and integers)
-    Input #FileNum, TempVar: HasShovel = CBool(TempVar)
-    Input #FileNum, TempVar: HasPickaxe = CBool(TempVar)
-    Input #FileNum, TempVar: HasDrill = CBool(TempVar)
-    Input #FileNum, TempVar: HasLantern = CBool(TempVar)
-    Input #FileNum, TempVar: HasBucket = CBool(TempVar)
-    Input #FileNum, TempVar: HasTorch = CBool(TempVar)
-    Input #FileNum, TempVar: HasDynamite = CBool(TempVar)
-    Input #FileNum, TempVar: HasRing = CBool(TempVar)
-    Input #FileNum, TempVar: HasCondom = CBool(TempVar)
-    Input #FileNum, TempVar: HasPump = CBool(TempVar)
-    Input #FileNum, TempVar: HasClover = CBool(TempVar)
-    Input #FileNum, TempVar: HasDiamond = CBool(TempVar)
-
-    ' Fuel
-    Input #FileNum, LanternFuel
-    Input #FileNum, TorchFuel
-
-    ' Elevator
-    Input #FileNum, ElevatorY
-    Input #FileNum, MaxElevatorDepth
-
-    ' Set defaults for new fields
-    BucketUses = MAX_BUCKET_USES
-    DrillUses = MAX_DRILL_USES
-    PlayerLuck = 0
-End Sub
 
 Private Sub LoadGameV2(ByVal FileNum As Integer, ByVal Version As String)
     Dim TempVar As Variant

@@ -121,7 +121,7 @@ Public Sub InitializeGrid()
 End Sub
 
 ' ============================================================================
-' Random Modifier Generation (Updated with new modifiers)
+' Random Modifier Generation
 ' ============================================================================
 Private Function GenerateModifier() As Integer
     Dim RandVal As Integer
@@ -132,7 +132,7 @@ Private Function GenerateModifier() As Integer
         Exit Function
     End If
 
-    ' Generate random value 1-1040 (matching JS version)
+    ' Generate random value 1-1040
     RandVal = Int(Rnd * 1040) + 1
 
     If RandVal <= CHANCE_PLATINUM Then
@@ -154,11 +154,11 @@ Private Function GenerateModifier() As Integer
         Dim RareRoll As Integer
         RareRoll = Int(Rnd * 1000) + 1
 
-        If RareRoll <= 2 Then
+        If RareRoll <= 4 Then
             GenerateModifier = MOD_DIAMOND   ' Very rare
-        ElseIf RareRoll <= 5 Then
+        ElseIf RareRoll <= 15 Then
             GenerateModifier = MOD_PUMP      ' Very rare
-        ElseIf RareRoll <= 8 Then
+        ElseIf RareRoll <= 30 Then
             GenerateModifier = MOD_CLOVER    ' Very rare
         ElseIf RareRoll <= 150 Then
             GenerateModifier = MOD_SANDSTONE ' Uncommon
